@@ -1,0 +1,82 @@
+name: Receive and publish deb package
+
+on:
+  repository_dispatch:
+    types: [receive-deb]
+  workflow_dispatch:
+    inputs:
+      package_name:
+        description: "Package name"
+        required: true
+      package_version:
+        description: "Package version"
+        required: true
+      run_id:
+        description: "Run ID of the build workflow that produced the deb"
+        required: true
+      source_repo:
+        description: "Source repo (e.g., fpgas-online/fpgas.online-cam)"
+        required: true
+
+permissions:
+  contents: write
+  pages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set parameters from dispatch type
+        id: params
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            echo "source_repo=${{ github.event.client_payload.source_repo }}" >> "$GITHUB_OUTPUT"
+            echo "run_id=${{ github.event.client_payload.run_id }}" >> "$GITHUB_OUTPUT"
+            echo "package_name=${{ github.event.client_payload.package_name }}" >> "$GITHUB_OUTPUT"
+            echo "package_version=${{ github.event.client_payload.package_version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "source_repo=${{ inputs.source_repo }}" >> "$GITHUB_OUTPUT"
+            echo "run_id=${{ inputs.run_id }}" >> "$GITHUB_OUTPUT"
+            echo "package_name=${{ inputs.package_name }}" >> "$GITHUB_OUTPUT"
+            echo "package_version=${{ inputs.package_version }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download deb artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: deb-package
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ steps.params.outputs.source_repo }}
+          run-id: ${{ steps.params.outputs.run_id }}
+          path: incoming/
+
+      - name: Move deb to pool
+        run: |
+          mkdir -p pool/main
+          mv incoming/*.deb pool/main/
+
+      - name: Install apt-ftparchive
+        run: sudo apt-get install -y apt-utils
+
+      - name: Import GPG key
+        run: echo "${{ secrets.APT_GPG_PRIVATE_KEY }}" | gpg --import
+
+      - name: Update repository metadata
+        run: bash update-repo.sh
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Add ${{ steps.params.outputs.package_name }} ${{ steps.params.outputs.package_version }}"
+          git push
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          publish_branch: gh-pages
