@@ -1,0 +1,8 @@
+# Map APT package names to the GitHub source repo they are built from.
+# Consumed by tools/build-site.py when rendering package cards on the
+# landing page. Add an entry whenever a new deb-producing repo starts
+# publishing to this APT repository.
+
+[packages]
+"fpgas-online-cam" = "fpgas-online/fpgas.online-cam"
+"fpgas-online-setup-pi" = "fpgas-online/fpgas.online-setup-pi"

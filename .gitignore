@@ -1,0 +1,7 @@
+/site/
+/dists/
+__pycache__/
+*.pyc
+tmp/
+.claude/
+.playwright-mcp/
