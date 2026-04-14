@@ -73,10 +73,5 @@ jobs:
           git add -A
           git commit -m "Add ${{ steps.params.outputs.package_name }} ${{ steps.params.outputs.package_version }}"
           git push
-
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
-          publish_branch: gh-pages
+          # The push triggers .github/workflows/pages.yml, which rebuilds
+          # and deploys the human-facing site without needing the GPG key.
