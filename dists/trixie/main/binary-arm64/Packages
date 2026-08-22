@@ -1,0 +1,32 @@
+Package: fpgas-online-tt
+Architecture: all
+Version: 0.0.post24
+Priority: optional
+Maintainer: fpgas.online <fpgas@fpgas.online>
+Installed-Size: 22
+Depends: python3 (>= 3.11), python3-aiohttp, python3-serial, python3-serial-asyncio, python3-yaml, udev
+Filename: pool/main/fpgas-online-tt_0.0.post24_all.deb
+Size: 9220
+MD5sum: f900c54aeb524dad690c8ec73f98eda4
+SHA1: 410816614ff9c34d44b2df3c85d7bd6063311a1a
+SHA256: 5dea4b31c2462de76e3e39982af8e974b0b10ce99eb515a5355a1efd1bf6558b
+SHA512: a969d23897a57c37e035687b502decd69fd07f2c1be8e041865c360655df8f4c9ab9a9dffcef41d0ab5f29b9daac06b00abba1c6ab0189b0a7c6aadb4c8175bd
+Homepage: https://github.com/fpgas-online/fpgas.online-tt
+Description: Tiny Tapeout demo-board serial bridge daemon for fpgas.online Pi nodes
+
+Package: fpgas-online-tt
+Architecture: all
+Version: 0.0.post26
+Priority: optional
+Maintainer: fpgas.online <fpgas@fpgas.online>
+Installed-Size: 22
+Depends: python3 (>= 3.11), python3-aiohttp, python3-serial, python3-serial-asyncio, python3-yaml, udev
+Filename: pool/main/fpgas-online-tt_0.0.post26_all.deb
+Size: 9218
+MD5sum: 9c519b7ae2550da9168d7c45529d20f2
+SHA1: 639a79e288ab7f3054902ec4de3be665e117e6cc
+SHA256: 12b49f95d6ba0bf7f8731c42ddeaf0716d1c89a70abe43f893df384c2c3c0469
+SHA512: 9ccb43bcd188dd2b95b9065cb59ff9b6dc0424808824b6d32a27bff64daf82f7fda4c923e0f7cc1bcef8df797f60db264b50349656b48bb5fbf286257932f581
+Homepage: https://github.com/fpgas-online/fpgas.online-tt
+Description: Tiny Tapeout demo-board serial bridge daemon for fpgas.online Pi nodes
+

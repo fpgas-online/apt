@@ -1,0 +1,31 @@
+Architectures: armhf arm64
+Codename: trixie
+Components: main
+Date: Sat, 22 Aug 2026 11:40:14 +0000
+Label: fpgas.online
+Origin: fpgas-online
+Suite: trixie
+MD5Sum:
+ 533565949cc1ab7cf53d986be74a48ed              154 Release
+ 7ab86daf7f0e26a5206885daa8c1efd4             1516 main/binary-arm64/Packages
+ 1062072e56848553d0b3d9361f5aef4d              701 main/binary-arm64/Packages.gz
+ 7ab86daf7f0e26a5206885daa8c1efd4             1516 main/binary-armhf/Packages
+ 1062072e56848553d0b3d9361f5aef4d              701 main/binary-armhf/Packages.gz
+SHA1:
+ 6208743fbbcc83babbee6c13d4baa6a80f40e653              154 Release
+ bd791be76c6fe43e35af96ed71067466c9242046             1516 main/binary-arm64/Packages
+ 14434358899d13e9060da47ec6f12ba804e4ec8e              701 main/binary-arm64/Packages.gz
+ bd791be76c6fe43e35af96ed71067466c9242046             1516 main/binary-armhf/Packages
+ 14434358899d13e9060da47ec6f12ba804e4ec8e              701 main/binary-armhf/Packages.gz
+SHA256:
+ 2c9040032b88b291b54bd9dfad09fce36bd2bad3913a95f9bcdbbd80c1dae230              154 Release
+ a946be967b63d481e89a43dd962d7c97809571b61fc2f71b1d798038033fbc45             1516 main/binary-arm64/Packages
+ 83bd815f03bd0fdbb2d92403acde4f045d1cd2f2efa2a7ea51710915707e4345              701 main/binary-arm64/Packages.gz
+ a946be967b63d481e89a43dd962d7c97809571b61fc2f71b1d798038033fbc45             1516 main/binary-armhf/Packages
+ 83bd815f03bd0fdbb2d92403acde4f045d1cd2f2efa2a7ea51710915707e4345              701 main/binary-armhf/Packages.gz
+SHA512:
+ d03aeb5d44a697336f3794f62fb855f06bae2d76331b4c9ddc3e40952bc56263b8f731d832d2b44eda085a30056a5943e56f3db1717ba4ede8f34999189c8c62              154 Release
+ 9127e3ad7b2543f729578370da8b84a8d875811bcfaed891902401ea630f2688afd77a0cff27626fbd4794d7e805a82197a495d2b5425ce05b575d9afb069b15             1516 main/binary-arm64/Packages
+ 5115f711d67b0d599f999c195705c0519d7815bcb9f26ff85d15d393f0f8ab11bf02f327f994f6b7f698e3d39292e510e38167e51c9059ff2dc226ff71d9c3a6              701 main/binary-arm64/Packages.gz
+ 9127e3ad7b2543f729578370da8b84a8d875811bcfaed891902401ea630f2688afd77a0cff27626fbd4794d7e805a82197a495d2b5425ce05b575d9afb069b15             1516 main/binary-armhf/Packages
+ 5115f711d67b0d599f999c195705c0519d7815bcb9f26ff85d15d393f0f8ab11bf02f327f994f6b7f698e3d39292e510e38167e51c9059ff2dc226ff71d9c3a6              701 main/binary-armhf/Packages.gz
