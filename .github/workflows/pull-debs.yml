@@ -1,0 +1,59 @@
+name: Pull debs from source repos
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apt-repo-writes
+  cancel-in-progress: false
+
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+
+      - name: Pull new debs
+        id: pull
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          rc=0
+          uv run --python 3.12 python tools/pull_debs.py | tee pull.log || rc=$?
+          n="$(grep -E '^NEW: [0-9]+$' pull.log | tail -1 | awk '{print $2}')"
+          echo "new=${n:-0}" >> "$GITHUB_OUTPUT"
+          echo "rc=${rc}" >> "$GITHUB_OUTPUT"
+
+      - name: Install apt-ftparchive
+        if: steps.pull.outputs.new != '0'
+        run: sudo apt-get install -y apt-utils
+
+      - name: Import GPG key
+        if: steps.pull.outputs.new != '0'
+        run: echo "${{ secrets.APT_GPG_PRIVATE_KEY }}" | gpg --import
+
+      - name: Update repository metadata
+        if: steps.pull.outputs.new != '0'
+        run: bash update-repo.sh
+
+      - name: Commit and push
+        if: steps.pull.outputs.new != '0'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Pull $(git status --porcelain pool/ | grep -c '^A') new deb(s) from source repos"
+          git push
+
+      - name: Fail the run if any source repo errored
+        run: exit "${{ steps.pull.outputs.rc }}"
