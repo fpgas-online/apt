@@ -21,6 +21,9 @@ on:
 permissions:
   contents: write
   pages: write
+  # Needed to dispatch pages.yml below: GITHUB_TOKEN pushes never trigger
+  # other workflows on their own, so we trigger it explicitly.
+  actions: write
 
 concurrency:
   group: apt-repo-writes
@@ -74,8 +77,16 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
+          git add -A pool dists
           git commit -m "Add ${{ steps.params.outputs.package_name }} ${{ steps.params.outputs.package_version }}"
           git push
-          # The push triggers .github/workflows/pages.yml, which rebuilds
-          # and deploys the human-facing site without needing the GPG key.
+
+      - name: Trigger Pages deploy
+        # A push made with the default GITHUB_TOKEN never triggers other
+        # workflows (GitHub's anti-recursion rule), so pages.yml's `push`
+        # trigger won't fire for the commit above -- dispatch it explicitly.
+        # This rebuilds and deploys the human-facing site without needing
+        # the GPG key.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main
