@@ -17,10 +17,19 @@ that are installed on Raspberry Pi boards.
 
 ### How It Works
 
-1. Deb-producing repos (fpgas.online-cam, fpgas.online-setup-pi) build `.deb` files in CI
+1. Deb-producing repos (fpgas.online-cam, fpgas.online-setup-pi, fpgas.online-tt) build `.deb` files in CI
 2. On tagged releases, they trigger the `receive-deb` workflow in this repo via `repository_dispatch`
 3. The workflow downloads the deb, adds it to `pool/`, regenerates repo metadata, and deploys to GitHub Pages
 4. Pis install packages from `https://fpgas-online.github.io/apt`
+
+The primary ingest path is now **secretless pull-based ingest**: source repos listed in
+`tools/package_sources.toml` publish every green `main` build's `.deb` as an asset on a
+rolling GitHub Release tagged `debs` in their own repo (no cross-repo token needed). The
+`.github/workflows/pull-debs.yml` workflow runs on a schedule (every 15 minutes) and on
+demand, downloading any new asset via `tools/pull_debs.py`, then running `update-repo.sh`
+and committing if anything changed. `receive-deb.yml` (`repository_dispatch`, above) is kept
+as a legacy push-based path for compatibility; both workflows share the `apt-repo-writes`
+concurrency group so they never race on `pool/`/`dists/` commits.
 
 ### Hosted Packages
 
