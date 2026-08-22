@@ -30,7 +30,9 @@ apt repo pulls every `<package>_*.deb` asset from *all* of the repo's releases, 
 latest, since a repo accumulates several series releases over time. The
 `.github/workflows/pull-debs.yml` workflow runs on a schedule (every 15 minutes) and on
 demand, downloading any new asset via `tools/pull_debs.py`, then running `update-repo.sh`
-and committing if anything changed. `receive-deb.yml` (`repository_dispatch`, above) is kept
+and committing `pool/`+`dists/` if anything changed, then explicitly dispatching
+`pages.yml` (a `GITHUB_TOKEN` push never triggers other workflows on its own).
+`receive-deb.yml` (`repository_dispatch`, above) is kept
 as a legacy push-based path for compatibility; both workflows share the `apt-repo-writes`
 concurrency group so they never race on `pool/`/`dists/` commits.
 

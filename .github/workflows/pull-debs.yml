@@ -4,9 +4,17 @@ on:
   schedule:
     - cron: "*/15 * * * *"
   workflow_dispatch:
+    inputs:
+      force_update:
+        description: "regenerate and commit repository metadata even when no new debs were pulled"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
+  # Needed to dispatch pages.yml below: GITHUB_TOKEN pushes never trigger
+  # other workflows on their own, so we trigger it explicitly.
+  actions: write
 
 concurrency:
   group: apt-repo-writes
@@ -35,25 +43,49 @@ jobs:
           echo "rc=${rc}" >> "$GITHUB_OUTPUT"
 
       - name: Install apt-ftparchive
-        if: steps.pull.outputs.new != '0'
+        if: steps.pull.outputs.new != '0' || github.event.inputs.force_update == 'true'
         run: sudo apt-get install -y apt-utils
 
       - name: Import GPG key
-        if: steps.pull.outputs.new != '0'
+        if: steps.pull.outputs.new != '0' || github.event.inputs.force_update == 'true'
         run: echo "${{ secrets.APT_GPG_PRIVATE_KEY }}" | gpg --import
 
       - name: Update repository metadata
-        if: steps.pull.outputs.new != '0'
+        if: steps.pull.outputs.new != '0' || github.event.inputs.force_update == 'true'
         run: bash update-repo.sh
 
       - name: Commit and push
-        if: steps.pull.outputs.new != '0'
+        id: commit
+        if: steps.pull.outputs.new != '0' || github.event.inputs.force_update == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "Pull $(git status --porcelain pool/ | grep -c '^A') new deb(s) from source repos"
-          git push
+          git add -A pool dists
+          if git diff --cached --quiet; then
+            if [ "${{ github.event.inputs.force_update }}" = "true" ] && [ "${{ steps.pull.outputs.new }}" = "0" ]; then
+              echo "force_update was requested but nothing changed to commit" >&2
+              exit 1
+            fi
+            echo "Nothing to commit"
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+          else
+            if [ "${{ steps.pull.outputs.new }}" != "0" ]; then
+              git commit -m "Pull $(git status --porcelain pool/ | grep -c '^A') new deb(s) from source repos"
+            else
+              git commit -m "Regenerate repository metadata"
+            fi
+            git push
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Trigger Pages deploy
+        if: steps.commit.outputs.pushed == 'true'
+        # A push made with the default GITHUB_TOKEN never triggers other
+        # workflows (GitHub's anti-recursion rule), so pages.yml's `push`
+        # trigger won't fire for the commit above -- dispatch it explicitly.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main
 
       - name: Fail the run if any source repo errored
         run: exit "${{ steps.pull.outputs.rc }}"
