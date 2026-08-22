@@ -22,6 +22,10 @@ permissions:
   contents: write
   pages: write
 
+concurrency:
+  group: apt-repo-writes
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest

@@ -5,6 +5,7 @@ __pycache__/
 tmp/
 .claude/
 .playwright-mcp/
+pull.log
 
 # git worktrees for feature branches
 .worktrees/
