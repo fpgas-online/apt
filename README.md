@@ -8,8 +8,9 @@ This repository hosts Debian packages used by fpgas.online Raspberry Pi nodes. P
 
 ## Hosted Packages
 
-- **fpgas-online-setup-pi** -- Pi node configuration, services, and environment setup.
 - **fpgas-online-cam** -- Camera streaming tools for FPGA board video feeds.
+- **fpgas-online-setup-pi** -- Pi node configuration, services, and environment setup.
+- **fpgas-online-tt** -- Tiny Tapeout demo-board serial bridge daemon for tinytapeout.fpgas.online.
 
 ## Adding the Repository on a Pi
 
@@ -62,8 +63,9 @@ tools/
 ## Related Repositories
 
 - [fpgas.online-cam](https://github.com/fpgas-online/fpgas.online-cam) -- Source for the `fpgas-online-cam` package
-- [fpgas.online-setup-pi](https://github.com/fpgas-online/fpgas.online-setup-pi) -- Source for the `fpgas-online-setup-pi` package
 - [fpgas.online-infra](https://github.com/fpgas-online/fpgas.online-infra) -- Ansible playbooks that configure Pis to use this repo
+- [fpgas.online-setup-pi](https://github.com/fpgas-online/fpgas.online-setup-pi) -- Source for the `fpgas-online-setup-pi` package
+- [fpgas.online-tt](https://github.com/fpgas-online/fpgas.online-tt) -- Source for the `fpgas-online-tt` package
 
 ## License
 
