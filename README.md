@@ -4,7 +4,7 @@ APT package repository for the fpgas.online FPGA-as-a-Service platform, served v
 
 ## Overview
 
-This repository hosts Debian packages used by fpgas.online Raspberry Pi nodes. Packages are added automatically: this repo periodically pulls new `.deb` builds from each source repository's rolling `debs` GitHub Release and adds them to the pool, regenerating repository metadata. The landing page at <https://fpgas-online.github.io/apt> lists the hosted packages and links to their source repositories, and every subdirectory has a browsable index.
+This repository hosts Debian packages used by fpgas.online Raspberry Pi nodes. Packages are added automatically: this repo periodically pulls new `.deb` builds from each source repository's GitHub Releases and adds them to the pool, regenerating repository metadata. The landing page at <https://fpgas-online.github.io/apt> lists the hosted packages and links to their source repositories, and every subdirectory has a browsable index.
 
 ## Hosted Packages
 
@@ -36,8 +36,8 @@ apt install fpgas-online-setup-pi
 
 ### Pull-based ingest (primary path, secretless)
 
-1. Each deb-producing source repository (listed in `tools/package_sources.toml`) publishes every green `main` build's `.deb` as an asset on a rolling GitHub Release tagged `debs` in its own repo. That release is created with the source repo's own `GITHUB_TOKEN` — no cross-repo token is ever needed.
-2. The `pull-debs` workflow in this repository runs on a schedule (every 15 minutes) and on demand (`workflow_dispatch`). For each source repo it checks the `debs` release for `.deb` assets not already present in `pool/main/` and downloads them anonymously (`tools/pull_debs.py`). A repo with no `debs` release yet is simply skipped.
+1. Each deb-producing source repository (listed in `tools/package_sources.toml`) publishes every green `main` build's `.deb` as an asset on a GitHub Release in its own repo — by convention the current series tag's release (`v0.0`, `v0.1`, ...), since source repos' tag rulesets only allow `vX.Y`-shaped tags. A repo may accumulate several such releases over time as its series advances. Each release is created with the source repo's own `GITHUB_TOKEN` — no cross-repo token is ever needed.
+2. The `pull-debs` workflow in this repository runs on a schedule (every 15 minutes) and on demand (`workflow_dispatch`). For each source repo it enumerates *all* of that repo's GitHub Releases (paginated) and pulls every `<package>_*.deb` asset not already present in `pool/main/`, downloading them anonymously (`tools/pull_debs.py`). A repo with no releases yet is simply skipped.
 3. If any new `.deb`s were pulled, the workflow installs `apt-ftparchive`, imports the signing key, runs `update-repo.sh` to regenerate the `dists/` metadata (Packages, Release files) for both the `bookworm` and `trixie` suites, and commits/pushes the result.
 4. The `pages.yml` workflow — triggered by that commit to `main` — rebuilds the human-facing index (`tools/build_site.py`) and deploys the site to GitHub Pages via `actions/deploy-pages`. The deploy pipeline never has access to the signing key; it only mirrors what was already signed and committed.
 
@@ -59,7 +59,7 @@ dists/                       Per-suite signed repository metadata (generated)
 tools/
   build_site.py              Builds the human-facing index under site/
   package_sources.toml       Package name -> source GitHub repo map
-  pull_debs.py               Pulls new debs from source repos' rolling `debs` releases
+  pull_debs.py               Pulls new debs from source repos' GitHub Releases
   test_build_site.py         Unit and integration tests for build_site.py
   test_pull_debs.py          Unit tests for pull_debs.py
 .github/workflows/
@@ -72,7 +72,7 @@ tools/
 ## Adding a Package
 
 1. Add an entry to `tools/package_sources.toml` mapping the package name to its source GitHub repo, e.g. `"fpgas-online-foo" = "fpgas-online/fpgas.online-foo"`.
-2. Have the source repo's CI publish each green `main` build's `.deb` as an asset on a rolling GitHub Release tagged `debs` (created with that repo's own `GITHUB_TOKEN`, pre-release, assets accumulating). The `pull-debs` workflow here will pick it up on its next scheduled run (or trigger it manually via `workflow_dispatch`).
+2. Have the source repo's CI publish each green `main` build's `.deb` as an asset on a GitHub Release in its own repo — by convention the current series tag's release (`v0.0`, `v0.1`, ...) — created with that repo's own `GITHUB_TOKEN`. The apt repo pulls every `<package>_*.deb` asset from *all* of the repo's releases, so older series releases don't need to be cleaned up. The `pull-debs` workflow here will pick up new assets on its next scheduled run (or trigger it manually via `workflow_dispatch`).
 
 ## Related Repositories
 

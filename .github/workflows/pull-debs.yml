@@ -27,10 +27,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
-          uv run --python 3.12 python tools/pull_debs.py | tee pull.log
+          set -uo pipefail
+          rc=0
+          uv run --python 3.12 python tools/pull_debs.py | tee pull.log || rc=$?
           n="$(grep -E '^NEW: [0-9]+$' pull.log | tail -1 | awk '{print $2}')"
           echo "new=${n:-0}" >> "$GITHUB_OUTPUT"
+          echo "rc=${rc}" >> "$GITHUB_OUTPUT"
 
       - name: Install apt-ftparchive
         if: steps.pull.outputs.new != '0'
@@ -52,3 +54,6 @@ jobs:
           git add -A
           git commit -m "Pull $(git status --porcelain pool/ | grep -c '^A') new deb(s) from source repos"
           git push
+
+      - name: Fail the run if any source repo errored
+        run: exit "${{ steps.pull.outputs.rc }}"

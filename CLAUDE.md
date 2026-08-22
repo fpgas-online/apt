@@ -23,8 +23,11 @@ that are installed on Raspberry Pi boards.
 4. Pis install packages from `https://fpgas-online.github.io/apt`
 
 The primary ingest path is now **secretless pull-based ingest**: source repos listed in
-`tools/package_sources.toml` publish every green `main` build's `.deb` as an asset on a
-rolling GitHub Release tagged `debs` in their own repo (no cross-repo token needed). The
+`tools/package_sources.toml` publish each green `main` build's `.deb` to a GitHub Release —
+by convention the current series tag's release (`v0.0`, `v0.1`, ...), since source repos' tag
+rulesets only allow `vX.Y`-shaped tags — in their own repo (no cross-repo token needed). The
+apt repo pulls every `<package>_*.deb` asset from *all* of the repo's releases, not just the
+latest, since a repo accumulates several series releases over time. The
 `.github/workflows/pull-debs.yml` workflow runs on a schedule (every 15 minutes) and on
 demand, downloading any new asset via `tools/pull_debs.py`, then running `update-repo.sh`
 and committing if anything changed. `receive-deb.yml` (`repository_dispatch`, above) is kept
