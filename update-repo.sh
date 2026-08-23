@@ -26,8 +26,8 @@ for suite in "${SUITES[@]}"; do
     -o APT::FTPArchive::Release::Components="main" \
     "dists/${suite}" > "dists/${suite}/Release"
 
-  gpg --default-key apt@fpgas.online -abs \
+  gpg --batch --yes --default-key apt@fpgas.online -abs \
     -o "dists/${suite}/Release.gpg" "dists/${suite}/Release"
-  gpg --default-key apt@fpgas.online --clearsign \
+  gpg --batch --yes --default-key apt@fpgas.online --clearsign \
     -o "dists/${suite}/InRelease" "dists/${suite}/Release"
 done
