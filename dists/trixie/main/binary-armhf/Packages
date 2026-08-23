@@ -1,3 +1,19 @@
+Package: fpgas-online-tt-demos
+Architecture: all
+Version: 0.0.post21
+Priority: optional
+Maintainer: fpgas.online <fpgas@fpgas.online>
+Installed-Size: 514
+Depends: fpgas-online-tt
+Filename: pool/main/fpgas-online-tt-demos_0.0.post21_all.deb
+Size: 15970
+MD5sum: b7fc759aa2b715775f57a953d35f983f
+SHA1: 707046bb1e47ed62d9155c6adc9ca8240718d923
+SHA256: 9d3e3605c9ef5ab99c42e892fb2a2892e75fa5044052ec9437f92754fd739ed1
+SHA512: 240eea0acef27c21909aa1f6c0af713620e7472f1a5fffa9245e66c38fd7adc71b341a52d42dfa93722137ca1e0c4b8324dd21e4639c377906bf362b6d39ed52
+Homepage: https://github.com/fpgas-online/tinytapeout-fpga-demos
+Description: Curated Tiny Tapeout demo bitstreams for the FPGA emulation boards (fpgas.online)
+
 Package: fpgas-online-tt
 Architecture: all
 Version: 0.0.post24
@@ -27,6 +43,22 @@ MD5sum: 9c519b7ae2550da9168d7c45529d20f2
 SHA1: 639a79e288ab7f3054902ec4de3be665e117e6cc
 SHA256: 12b49f95d6ba0bf7f8731c42ddeaf0716d1c89a70abe43f893df384c2c3c0469
 SHA512: 9ccb43bcd188dd2b95b9065cb59ff9b6dc0424808824b6d32a27bff64daf82f7fda4c923e0f7cc1bcef8df797f60db264b50349656b48bb5fbf286257932f581
+Homepage: https://github.com/fpgas-online/fpgas.online-tt
+Description: Tiny Tapeout demo-board serial bridge daemon for fpgas.online Pi nodes
+
+Package: fpgas-online-tt
+Architecture: all
+Version: 0.0.post28
+Priority: optional
+Maintainer: fpgas.online <fpgas@fpgas.online>
+Installed-Size: 22
+Depends: python3 (>= 3.11), python3-aiohttp, python3-serial, python3-serial-asyncio, python3-yaml, udev
+Filename: pool/main/fpgas-online-tt_0.0.post28_all.deb
+Size: 9218
+MD5sum: 43a58b91e9c94a7cd8ce4f662f5d2a05
+SHA1: 83c01676a82b35a7485eb8de271ab1d1a4fc8dca
+SHA256: cf2104a564817eb3298f56e4e5b7b23d33a0e33971082fe69b59a92b8f3facee
+SHA512: c39f0fe6bc2e08fa4e98daade207be903d9d902b3c6a70d2eab7a794e9ce91ccb4facbb9b6aeff0a5e10504526f8a0531c2c109e43583dd2deb6fd730aaae3ec
 Homepage: https://github.com/fpgas-online/fpgas.online-tt
 Description: Tiny Tapeout demo-board serial bridge daemon for fpgas.online Pi nodes
 
