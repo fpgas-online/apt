@@ -62,3 +62,19 @@ SHA512: c39f0fe6bc2e08fa4e98daade207be903d9d902b3c6a70d2eab7a794e9ce91ccb4facbb9
 Homepage: https://github.com/fpgas-online/fpgas.online-tt
 Description: Tiny Tapeout demo-board serial bridge daemon for fpgas.online Pi nodes
 
+Package: fpgas-online-tt
+Architecture: all
+Version: 0.0.post52
+Priority: optional
+Maintainer: fpgas.online <fpgas@fpgas.online>
+Installed-Size: 61
+Depends: python3 (>= 3.11), python3-aiohttp, python3-serial, python3-serial-asyncio, python3-yaml, udev
+Filename: pool/main/fpgas-online-tt_0.0.post52_all.deb
+Size: 21494
+MD5sum: 34796a3a3b22eb76a82efc45cdeaa63f
+SHA1: 11026c89c423aa5f9a85b448230df8af0c0ebdd2
+SHA256: 572dde9939aa906f3ffd70714840d67598dbe2c4aba19f7e66e643279d1252f4
+SHA512: 09c18a9c1de500b40c5aec288396970bcdf305b8f4b28c16d471cec681b2268687cf9368233128536e1594e830f9d11793c021f696e423573f7604e13b35471f
+Homepage: https://github.com/fpgas-online/fpgas.online-tt
+Description: Tiny Tapeout demo-board serial bridge daemon for fpgas.online Pi nodes
+
