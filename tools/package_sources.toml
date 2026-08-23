@@ -7,3 +7,4 @@
 "fpgas-online-cam" = "fpgas-online/fpgas.online-cam"
 "fpgas-online-setup-pi" = "fpgas-online/fpgas.online-setup-pi"
 "fpgas-online-tt" = "fpgas-online/fpgas.online-tt"
+"fpgas-online-tt-demos" = "fpgas-online/tinytapeout-fpga-demos"
