@@ -103,6 +103,21 @@ SHA256: cc32fb00fe117a1a42fbca89e7c0aafcc37c62a29b18cb1da37f10c4bf831590
 SHA512: 137624c06bd43ce6deb51738446a3a54143eb1cf9a39c8826850d5902d76b1392da0afa36f9b1c4b20f41ae298ea27d44f7d0b945670ad57349989fe8551a45e
 Description: Raspberry Pi environment setup for fpgas.online nodes
 
+Package: fpgas-online-setup-pi
+Architecture: all
+Version: 0.0.post62
+Priority: optional
+Maintainer: fpgas.online <fpgas@fpgas.online>
+Installed-Size: 575
+Depends: sunxi-tools, zsh, tmux, vim, expect, python3
+Filename: pool/main/fpgas-online-setup-pi_0.0.post62_all.deb
+Size: 345272
+MD5sum: 683f7bbe9fa4c81f5c5e771202b09996
+SHA1: 98fad69944733f17eb0646ee00cf3fc8d330914f
+SHA256: 0d58503aa50b36f5b10c22a9095b5c2dd5668abc6e45626793e4c2924ce88234
+SHA512: d3cd35363986efeaf3542d1d8ec374c405c7d7aedef2f1fc2e95fbd39850fbcfa3a17637c52e98a2488d71d247a3c43466e56d34cbaae629d90f7f12360aba4b
+Description: Raspberry Pi environment setup for fpgas.online nodes
+
 Package: fpgas-online-tt-demos
 Architecture: all
 Version: 0.0.post21
