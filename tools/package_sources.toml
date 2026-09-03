@@ -8,3 +8,10 @@
 "fpgas-online-setup-pi" = "fpgas-online/fpgas.online-setup-pi"
 "fpgas-online-tt" = "fpgas-online/fpgas.online-tt"
 "fpgas-online-tt-demos" = "fpgas-online/tinytapeout-fpga-demos"
+
+# openFPGALoader built with -DENABLE_RP1_PIO=ON, and the RP1 PIO JTAG library
+# it links against. Both come from the same source repo. The Pi NFS root
+# installs openfpgaloader-rp1pio in place of Debian's openfpgaloader
+# (fpgas.online-infra#48); librp1jtag0 is its dependency and is not in Debian.
+"openfpgaloader-rp1pio" = "mithro/rp1-jtag"
+"librp1jtag0" = "mithro/rp1-jtag"
