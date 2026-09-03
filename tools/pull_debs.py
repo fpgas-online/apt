@@ -9,6 +9,12 @@ releases over time as its series advances. This script pulls every
 `<package>_*.deb` asset across *all* of a source repo's releases -- it never
 needs write access to, or a token for, the source repos.
 
+Every entry in package_sources.toml must be provided by its repo: if a
+registered package has no matching `.deb` asset on any release, the run
+fails. Otherwise a repo that publishes only to its own apt archive -- or a
+package name that never matched anything -- sits here indefinitely while
+the job stays green and the package never appears in the archive.
+
 Public release assets download anonymously; GITHUB_TOKEN (if set) is only
 used to raise the GitHub API rate limit for the release-listing calls.
 
@@ -166,8 +172,14 @@ def pull_all(
     """Pull every new .deb asset -- across every release -- for every
     package in tools/package_sources.toml into pool/main/. Always prints a
     final 'NEW: n' line, counting the packages that succeeded even if
-    others failed. Returns 0 on success (including the "no releases yet"
-    case), 2 if any package's release-listing or asset download failed."""
+    others failed. Returns 0 on success, 2 if any package's release-listing
+    or asset download failed, or if any registered package's source repo
+    offers no matching .deb at all.
+
+    That last case is an error, not a skip: registering a package here is a
+    claim that the repo publishes it, and a claim nothing checks is a claim
+    that silently rots. Failing is deferred to the end of the run so one
+    dead source never stops the healthy ones from being pulled."""
     sources_path = repo_root / "tools" / "package_sources.toml"
     sources = load_package_sources(sources_path)
 
@@ -186,9 +198,10 @@ def pull_all(
             had_error = True
             continue
 
-        if not releases:
-            LOG.info("no releases found for %s (%s); skipping", package, repo)
-            continue
+        # Every registered package must be offered by its source repo. Counted
+        # across all releases, before the "already in pool/" check: an asset we
+        # pulled on an earlier run still means the repo provides the package.
+        offered = 0
 
         for release in releases:
             if release.get("draft"):
@@ -200,6 +213,7 @@ def pull_all(
                 if not is_valid_asset_name(name):
                     LOG.warning("rejecting asset with unexpected name: %s", name)
                     continue
+                offered += 1
                 if name in existing:
                     continue
 
@@ -222,6 +236,33 @@ def pull_all(
 
                 existing.add(name)
                 new_files.append(name)
+
+        if offered == 0:
+            # A registered package that nothing publishes is a silent hole: the
+            # archive stays green forever while consumers get "no installation
+            # candidate". Distinguish the two causes -- they have different fixes.
+            if not releases:
+                LOG.error(
+                    "%s (%s) provides nothing: that repo has no releases at all. "
+                    "Its deb workflow must publish %s_<version>_<arch>.deb as an "
+                    "asset on its vX.Y series release (see fpgas.online-cam's "
+                    "build-deb.yml). If the package is gone, drop it from "
+                    "tools/package_sources.toml.",
+                    package,
+                    repo,
+                    package,
+                )
+            else:
+                LOG.error(
+                    "%s (%s) provides nothing: %d release(s) exist but none carries "
+                    "a %s_<version>_<arch>.deb asset. Check the package name here "
+                    "matches what that repo actually builds.",
+                    package,
+                    repo,
+                    len(releases),
+                    package,
+                )
+            had_error = True
 
     print(f"NEW: {len(new_files)}")
     return 2 if had_error else 0
