@@ -188,16 +188,94 @@ class PullAllTests(unittest.TestCase):
     def _unexpected_download(self, url, dest, expected_size):
         raise AssertionError(f"download() should not have been called for {url}")
 
-    def test_no_releases_is_skipped_without_error(self):
+    def test_no_releases_is_an_error(self):
+        # A registered repo that publishes no releases at all -- the state
+        # mithro/rp1-jtag was in: it publishes only to its own Pages apt
+        # archive, so nothing here would ever have been pulled.
         _write_sources_toml(self.repo_root, {"foo": "org/foo"})
 
         def list_releases_fn(repo, token):
             return []  # 404 or genuinely empty
 
+        with self.assertLogs(pull_debs.LOG, level="ERROR") as logs:
+            rc, out = self.run_pull(list_releases_fn)
+        self.assertEqual(rc, 2)
+        self.assertIn("NEW: 0", out)
+        self.assertEqual(list(self.pool_dir().glob("*.deb")), [])
+        self.assertIn("provides nothing", "\n".join(logs.output))
+        self.assertIn("no releases at all", "\n".join(logs.output))
+
+    def test_releases_without_a_matching_asset_is_an_error(self):
+        # Releases exist, but none carries an asset for this package name --
+        # typically a typo in package_sources.toml, so the message differs.
+        _write_sources_toml(self.repo_root, {"foo": "org/foo"})
+
+        def list_releases_fn(repo, token):
+            return [_release([_asset("otherpkg_1.0_all.deb", 4)])]
+
+        with self.assertLogs(pull_debs.LOG, level="ERROR") as logs:
+            rc, out = self.run_pull(list_releases_fn)
+        self.assertEqual(rc, 2)
+        self.assertIn("NEW: 0", out)
+        self.assertIn("provides nothing", "\n".join(logs.output))
+        self.assertIn("1 release(s) exist", "\n".join(logs.output))
+
+    def test_asset_already_in_pool_still_counts_as_provided(self):
+        # Steady state: nothing new to pull, but the repo does still offer the
+        # package. That must stay green, or every quiet run would go red.
+        _write_sources_toml(self.repo_root, {"foo": "org/foo"})
+        (self.pool_dir() / "foo_1.0_all.deb").write_bytes(b"old")
+
+        def list_releases_fn(repo, token):
+            return [_release([_asset("foo_1.0_all.deb", 3)])]
+
         rc, out = self.run_pull(list_releases_fn)
         self.assertEqual(rc, 0)
         self.assertIn("NEW: 0", out)
-        self.assertEqual(list(self.pool_dir().glob("*.deb")), [])
+
+    def test_only_badly_named_assets_counts_as_providing_nothing(self):
+        # An asset that is rejected by the name check must not be credited as
+        # provision, or a repo publishing only malformed names looks healthy.
+        _write_sources_toml(self.repo_root, {"foo": "org/foo"})
+
+        def list_releases_fn(repo, token):
+            return [_release([_asset("foo_1.0_sparc.deb", 4)])]
+
+        with self.assertLogs(pull_debs.LOG, level="ERROR") as logs:
+            rc, _ = self.run_pull(list_releases_fn)
+        self.assertEqual(rc, 2)
+        self.assertIn("provides nothing", "\n".join(logs.output))
+
+    def test_draft_only_release_counts_as_providing_nothing(self):
+        _write_sources_toml(self.repo_root, {"foo": "org/foo"})
+
+        def list_releases_fn(repo, token):
+            return [_release([_asset("foo_1.0_all.deb", 4)], draft=True)]
+
+        with self.assertLogs(pull_debs.LOG, level="ERROR") as logs:
+            rc, _ = self.run_pull(list_releases_fn)
+        self.assertEqual(rc, 2)
+        self.assertIn("provides nothing", "\n".join(logs.output))
+
+    def test_dead_source_still_reported_after_healthy_ones_are_pulled(self):
+        # The failure is deferred to the end of the run: bar's deb must still
+        # land in the pool even though foo provides nothing.
+        _write_sources_toml(self.repo_root, {"foo": "org/foo", "bar": "org/bar"})
+
+        def list_releases_fn(repo, token):
+            if repo == "org/foo":
+                return []
+            return [_release([_asset("bar_1.0_all.deb", 4)])]
+
+        def download_fn(url, dest, expected_size):
+            dest.write_bytes(b"data")
+            return 4
+
+        with self.assertLogs(pull_debs.LOG, level="ERROR"):
+            rc, out = self.run_pull(list_releases_fn, download_fn)
+        self.assertEqual(rc, 2)
+        self.assertIn("NEW: 1", out)
+        self.assertTrue((self.pool_dir() / "bar_1.0_all.deb").exists())
 
     def test_new_asset_is_downloaded(self):
         _write_sources_toml(self.repo_root, {"foo": "org/foo"})
@@ -238,14 +316,25 @@ class PullAllTests(unittest.TestCase):
             self.assertTrue((self.pool_dir() / name).exists())
 
     def test_draft_release_is_skipped(self):
+        # The published release keeps this repo "providing"; the point under
+        # test is that the draft's asset is not among what gets downloaded.
         _write_sources_toml(self.repo_root, {"foo": "org/foo"})
 
         def list_releases_fn(repo, token):
-            return [_release([_asset("foo_1.0_all.deb", 4)], tag="v1.0", draft=True)]
+            return [
+                _release([_asset("foo_9.9_all.deb", 4)], tag="v9.9", draft=True),
+                _release([_asset("foo_1.0_all.deb", 4)], tag="v1.0"),
+            ]
 
-        rc, out = self.run_pull(list_releases_fn)  # unexpected_download would fail
+        def download_fn(url, dest, expected_size):
+            dest.write_bytes(b"data")
+            return 4
+
+        rc, out = self.run_pull(list_releases_fn, download_fn)
         self.assertEqual(rc, 0)
-        self.assertIn("NEW: 0", out)
+        self.assertIn("NEW: 1", out)
+        self.assertFalse((self.pool_dir() / "foo_9.9_all.deb").exists())
+        self.assertTrue((self.pool_dir() / "foo_1.0_all.deb").exists())
 
     def test_existing_asset_is_skipped(self):
         _write_sources_toml(self.repo_root, {"foo": "org/foo"})
@@ -283,14 +372,23 @@ class PullAllTests(unittest.TestCase):
                     [
                         _asset("foo_../../etc/passwd_all.deb", 10),
                         _asset("foo_1.0_sparc.deb", 10),
+                        # A legitimate asset, so this exercises name rejection
+                        # rather than the "provides nothing" check.
+                        _asset("foo_1.0_all.deb", 4),
                     ]
                 )
             ]
 
-        rc, out = self.run_pull(list_releases_fn)  # unexpected_download would fail
+        def download_fn(url, dest, expected_size):
+            dest.write_bytes(b"data")
+            return 4
+
+        rc, out = self.run_pull(list_releases_fn, download_fn)
         self.assertEqual(rc, 0)
-        self.assertIn("NEW: 0", out)
-        self.assertEqual(list(self.pool_dir().glob("*.deb")), [])
+        self.assertIn("NEW: 1", out)
+        self.assertEqual(
+            [p.name for p in self.pool_dir().glob("*.deb")], ["foo_1.0_all.deb"]
+        )
 
     def test_dry_run_downloads_nothing(self):
         _write_sources_toml(self.repo_root, {"foo": "org/foo"})
@@ -305,14 +403,24 @@ class PullAllTests(unittest.TestCase):
         self.assertEqual(list(self.pool_dir().glob("*.deb")), [])
 
     def test_asset_belonging_to_other_package_is_ignored(self):
+        # foo must also be provided here, otherwise this would trip the
+        # "provides nothing" check and stop testing what it means to test.
         _write_sources_toml(self.repo_root, {"foo": "org/foo"})
 
         def list_releases_fn(repo, token):
-            return [_release([_asset("bar_1.0_all.deb", 10)])]
+            return [
+                _release([_asset("bar_1.0_all.deb", 10), _asset("foo_1.0_all.deb", 4)])
+            ]
 
-        rc, out = self.run_pull(list_releases_fn)
+        def download_fn(url, dest, expected_size):
+            dest.write_bytes(b"data")
+            return 4
+
+        rc, out = self.run_pull(list_releases_fn, download_fn)
         self.assertEqual(rc, 0)
-        self.assertIn("NEW: 0", out)
+        self.assertIn("NEW: 1", out)
+        self.assertTrue((self.pool_dir() / "foo_1.0_all.deb").exists())
+        self.assertFalse((self.pool_dir() / "bar_1.0_all.deb").exists())
 
     def test_multiple_packages_each_queried(self):
         _write_sources_toml(self.repo_root, {"foo": "org/foo", "bar": "org/bar"})
@@ -322,7 +430,7 @@ class PullAllTests(unittest.TestCase):
             seen_repos.append(repo)
             if repo == "org/foo":
                 return [_release([_asset("foo_1.0_all.deb", 4)])]
-            return []
+            return [_release([_asset("bar_1.0_all.deb", 4)])]
 
         def download_fn(url, dest, expected_size):
             dest.write_bytes(b"data")
@@ -330,7 +438,7 @@ class PullAllTests(unittest.TestCase):
 
         rc, out = self.run_pull(list_releases_fn, download_fn)
         self.assertEqual(rc, 0)
-        self.assertIn("NEW: 1", out)
+        self.assertIn("NEW: 2", out)
         self.assertEqual(sorted(seen_repos), ["org/bar", "org/foo"])
 
     def test_one_package_failing_does_not_stop_the_others(self):
