@@ -58,6 +58,21 @@ SHA256: e314be078a52a4a0be8a199870f829ea5329647bc16a35598f847be66287b456
 SHA512: fa9929bd2fa0edc7dc47e2989cf098316fb7141255504524b7ea0a13d752942c45e10ad560fdb32ec119d2e02d397af9ea3111c677471efdbf4dbe35c950e1ed
 Description: Camera capture and GStreamer streaming for fpgas.online Pi boards
 
+Package: fpgas-online-cam
+Architecture: all
+Version: 0.0.post45
+Priority: optional
+Maintainer: fpgas.online <apt@fpgas.online>
+Installed-Size: 4
+Depends: gstreamer1.0-tools, gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, libcamera-tools
+Filename: pool/main/fpgas-online-cam_0.0.post45_all.deb
+Size: 3052
+MD5sum: 031eb194c47466449231dbff5bc383bb
+SHA1: 38f194235b2eb364e5e4a3663c3e1b4a215975b5
+SHA256: 4d8003d640653d400615123bf913533d9676b70f3fdb376c6a53526761114d29
+SHA512: 647012b2fd2da4c48f4730c1d4e55a6bf9ed7670f1127d8e692f9594a6ed2248a052c7b47f108eed0d6c44065a30ad20fd4ef0c146e2f4a136b60ba5a7f28013
+Description: Camera capture and GStreamer streaming for fpgas.online Pi boards
+
 Package: fpgas-online-setup-pi
 Architecture: all
 Version: 0.0.0~rc0
