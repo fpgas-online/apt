@@ -47,22 +47,13 @@ A deb-producing repository can still trigger the `receive-deb` workflow directly
 
 ## GPG Signing
 
-`pubkey.asc` holds the public key used to sign repository metadata, ASCII-armoured. Pis import this key to verify package authenticity.
-
-The site publishes it twice, because apt reads a keyring's format from its **extension**:
-
-| published file | format | use with |
-|---|---|---|
-| `pubkey.gpg` | binary keyring (built from `pubkey.asc` by `tools/build_site.py`) | `signed-by=` a path ending `.gpg` |
-| `pubkey.asc` | ASCII-armoured | `signed-by=` a path ending `.asc` |
-
-Armour under a `.gpg` name is not a warning: apt's `gpgv` fallback cannot parse it, so apt reports `NO_PUBKEY` and `The repository ... is not signed` ([fpgas.online-infra#13](https://github.com/fpgas-online/fpgas.online-infra/issues/13)). Hosts where apt uses Sequoia's `sqv` accept either encoding, which is how this went unnoticed. `pubkey.gpg` used to be armoured; piping it through `gpg --dearmor`, as older instructions did, is still fine, because `--dearmor` of binary input is a byte-for-byte no-op.
+`pubkey.asc` contains the public key used to sign repository metadata. Pis import this key to verify package authenticity.
 
 ## Directory Structure
 
 ```
 pool/                        Binary .deb packages (shared across suites)
-pubkey.asc                   Repository signing public key (armoured; site also serves binary pubkey.gpg)
+pubkey.asc                   Repository signing public key
 update-repo.sh               Regenerates dists/<suite>/ metadata from pool/
 dists/                       Per-suite signed repository metadata (generated and committed)
 tools/
