@@ -13,5 +13,15 @@ jobs:
       - name: Install shellcheck
         run: sudo apt-get install -y shellcheck
       - name: Run shellcheck
+        # No `|| true`: findings fail the run, which is what CLAUDE.md already
+        # claims ("shellcheck: blocking"). The tree is clean at --severity=warning
+        # and in fact at shellcheck's default severity, so this is enforceable
+        # today rather than aspirational.
+        #
+        # `xargs -r` matters only now that the exit status is real: with no *.sh
+        # files, xargs would otherwise run shellcheck with no arguments, which
+        # exits 3 ("No files specified") and would fail the job for no reason.
         run: |
-          find . -name '*.sh' -not -path './.git/*' -print0 | xargs -0 shellcheck --severity=warning || true
+          set -euo pipefail
+          find . -name '*.sh' -not -path './.git/*' -print0 \
+            | xargs -0 -r shellcheck --severity=warning
