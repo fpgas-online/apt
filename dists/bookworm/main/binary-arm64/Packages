@@ -103,6 +103,21 @@ SHA256: cf9081002da55ff278d788672f0166aaded53bc5b8e066651154f544ccd4e8f4
 SHA512: 01b05ad3772b8715626a135760f6b5580ac1a69699a78a55c02a02f85d759d0efcacbf9c161cf3fa45537e14475ed12b8a2cdccf0eb0acfaf7d0115d02be98d7
 Description: Camera capture and GStreamer streaming for fpgas.online Pi boards
 
+Package: fpgas-online-cam
+Architecture: all
+Version: 0.0.post60
+Priority: optional
+Maintainer: fpgas.online <apt@fpgas.online>
+Installed-Size: 6
+Depends: gstreamer1.0-tools, gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, libcamera-tools
+Filename: pool/main/fpgas-online-cam_0.0.post60_all.deb
+Size: 3960
+MD5sum: 42c95bec82ab122a6d5b5dc50b79a6d6
+SHA1: bd9200dc3502eb3580bfa914594834c337ccf969
+SHA256: 6366f1380b77cc9531c131a02579c6a84acdd0bd37bc24e945be7214078ad7d7
+SHA512: b4c250d14f60b8fe7b37474f2c07f6c28a93befc2fa0a538962222cd374b5dd357c2fd8bc151749891ebf83c2155af8418a510c8e2388965a3f72b0cbf71d279
+Description: Camera capture and GStreamer streaming for fpgas.online Pi boards
+
 Package: fpgas-online-setup-pi
 Architecture: all
 Version: 0.0.0~rc0
@@ -161,6 +176,21 @@ MD5sum: 683f7bbe9fa4c81f5c5e771202b09996
 SHA1: 98fad69944733f17eb0646ee00cf3fc8d330914f
 SHA256: 0d58503aa50b36f5b10c22a9095b5c2dd5668abc6e45626793e4c2924ce88234
 SHA512: d3cd35363986efeaf3542d1d8ec374c405c7d7aedef2f1fc2e95fbd39850fbcfa3a17637c52e98a2488d71d247a3c43466e56d34cbaae629d90f7f12360aba4b
+Description: Raspberry Pi environment setup for fpgas.online nodes
+
+Package: fpgas-online-setup-pi
+Architecture: all
+Version: 0.0.post69
+Priority: optional
+Maintainer: fpgas.online <fpgas@fpgas.online>
+Installed-Size: 591
+Depends: sunxi-tools, zsh, tmux, vim, expect, python3, python3-paho-mqtt
+Filename: pool/main/fpgas-online-setup-pi_0.0.post69_all.deb
+Size: 351384
+MD5sum: 8a41ca907f1f35e2621d9c576ecadebe
+SHA1: cdf211091f9e03142d0f21ad949463266d127881
+SHA256: 83944905edf80048f84dd4039ea21b7d3a1597760d57d6a3d30dbf8b50466dd6
+SHA512: 449894fc1e7cdd2e8c7cdbfebee4b5d0ab41c03ec62901738b6dc9353381e081a266e84622ac8d0444f06fbd80c58f4cd0829167325953b3090d6fe53d36c674
 Description: Raspberry Pi environment setup for fpgas.online nodes
 
 Package: fpgas-online-tt-demos
