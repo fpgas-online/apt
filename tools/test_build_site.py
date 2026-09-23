@@ -7,6 +7,8 @@ or:        cd tools && uv run python -m unittest test_build_site
 import io
 import os
 import pathlib
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -17,6 +19,43 @@ if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
 
 import build_site  # noqa: E402
+
+# The repository's real signing key, ASCII-armoured.
+REAL_PUBKEY_ASC = _HERE.parent / "pubkey.asc"
+
+
+class DearmorTests(unittest.TestCase):
+    """pubkey.gpg must be binary: apt reads a .gpg keyring as binary, and
+    gpgv cannot parse armour (fpgas.online-infra#13)."""
+
+    def test_real_key_becomes_a_binary_openpgp_packet(self):
+        binary = build_site.dearmor(REAL_PUBKEY_ASC.read_bytes())
+        # Public-key packet (tag 6): old format 0x98-0x9b, new format 0xc6.
+        self.assertIn(binary[0], (0x98, 0x99, 0x9A, 0x9B, 0xC6))
+        self.assertNotIn(b"-----BEGIN", binary)
+
+    @unittest.skipUnless(shutil.which("gpg"), "gpg not installed")
+    def test_matches_gpg_dearmor_byte_for_byte(self):
+        with tempfile.TemporaryDirectory() as home:
+            expected = subprocess.run(
+                ["gpg", "--homedir", home, "--batch", "--dearmor"],
+                input=REAL_PUBKEY_ASC.read_bytes(),
+                capture_output=True,
+                check=True,
+            ).stdout
+        self.assertEqual(build_site.dearmor(REAL_PUBKEY_ASC.read_bytes()), expected)
+
+    def test_rejects_a_corrupted_checksum(self):
+        lines = REAL_PUBKEY_ASC.read_text().splitlines()
+        crc = next(i for i, line in enumerate(lines) if line.startswith("="))
+        lines[crc] = "=AAAA" if lines[crc] != "=AAAA" else "=BBBB"
+        with self.assertRaisesRegex(ValueError, "checksum"):
+            build_site.dearmor("\n".join(lines).encode())
+
+    def test_rejects_input_that_is_not_armoured(self):
+        binary = build_site.dearmor(REAL_PUBKEY_ASC.read_bytes())
+        with self.assertRaisesRegex(ValueError, "armour"):
+            build_site.dearmor(binary)
 
 
 class ParsePackagesFileTests(unittest.TestCase):
@@ -205,6 +244,9 @@ class RenderRootIndexTests(unittest.TestCase):
         # Setup block uses lsb_release.
         self.assertIn("$(lsb_release -cs)", html)
         self.assertIn("/etc/apt/sources.list.d/fpgas-online.list", html)
+        # pubkey.gpg is published binary, so it is saved as-is: no gnupg needed.
+        self.assertIn("pubkey.gpg \\\n  | sudo tee /usr/share/keyrings/fpgas-online.gpg", html)
+        self.assertNotIn("--dearmor", html)
         # Package card.
         self.assertIn("fpgas-online-cam", html)
         self.assertIn("0.1.0", html)
@@ -242,7 +284,7 @@ class BuildSiteEndToEndTests(unittest.TestCase):
         (root / "pool" / "main").mkdir(parents=True)
         (root / "pool" / "main" / ".gitkeep").write_text("")
         (root / "pool" / "main" / "fpgas-online-cam_0.1.0_arm64.deb").write_bytes(b"\x00" * 2048)
-        (root / "pubkey.gpg").write_bytes(b"-----FAKE PUBKEY-----\n")
+        shutil.copy2(REAL_PUBKEY_ASC, root / "pubkey.asc")
 
         for suite in ("bookworm", "trixie"):
             pkgdir = root / "dists" / suite / "main" / "binary-arm64"
@@ -285,7 +327,12 @@ class BuildSiteEndToEndTests(unittest.TestCase):
             self.assertTrue((out / "index.html").exists())
             self.assertTrue((out / "intro.png").exists())
             self.assertEqual((out / "intro.png").read_bytes(), fake_png)
-            self.assertTrue((out / "pubkey.gpg").exists())
+            # Both encodings, each under the extension apt reads it by.
+            self.assertEqual((out / "pubkey.asc").read_bytes(), REAL_PUBKEY_ASC.read_bytes())
+            self.assertEqual(
+                (out / "pubkey.gpg").read_bytes(),
+                build_site.dearmor(REAL_PUBKEY_ASC.read_bytes()),
+            )
             self.assertTrue((out / "pool" / "main" / "fpgas-online-cam_0.1.0_arm64.deb").exists())
             self.assertTrue((out / "dists" / "bookworm" / "main" / "binary-arm64" / "Packages").exists())
             self.assertTrue((out / "dists" / "trixie" / "main" / "binary-arm64" / "Packages").exists())
