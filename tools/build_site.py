@@ -10,6 +10,7 @@ The script has no third-party dependencies; everything is stdlib.
 from __future__ import annotations
 
 import argparse
+import base64
 import datetime as _dt
 import html
 import os
@@ -28,7 +29,65 @@ INTRO_PNG_URL = (
 FPGAS_ONLINE_URL = "https://fpgas.online"
 APT_REPO_URL = "https://github.com/fpgas-online/apt"
 LIVE_SITE_PATH = "/apt/"
-PUBLISHABLE_TOP_LEVEL = ("pool", "dists", "pubkey.gpg")
+PUBLISHABLE_TOP_LEVEL = ("pool", "dists", "pubkey.asc", "pubkey.gpg")
+
+
+# ---------------------------------------------------------------------------
+# Signing key
+# ---------------------------------------------------------------------------
+#
+# apt reads a keyring's format from its extension: a .gpg keyring must be a
+# binary OpenPGP keyring and a .asc one ASCII-armoured. The repository keeps
+# the key armoured as pubkey.asc; the site publishes that and a binary
+# pubkey.gpg. Serving armour under the .gpg name made apt's gpgv fallback
+# report the repository unsigned (fpgas.online-infra#13).
+
+_ARMOUR_BEGIN = "-----BEGIN PGP PUBLIC KEY BLOCK-----"
+
+
+def _crc24(data: bytes) -> int:
+    """The OpenPGP armour checksum (RFC 4880, section 6.1)."""
+    crc = 0xB704CE
+    for byte in data:
+        crc ^= byte << 16
+        for _ in range(8):
+            crc <<= 1
+            if crc & 0x1000000:
+                crc ^= 0x1864CFB
+    return crc & 0xFFFFFF
+
+
+def dearmor(armoured: bytes) -> bytes:
+    """Decode an ASCII-armoured public key block, as `gpg --dearmor` does."""
+    try:
+        lines = [line.strip() for line in armoured.decode("ascii").splitlines()]
+    except UnicodeDecodeError:
+        raise ValueError("not ASCII armour: input is not ASCII text") from None
+    try:
+        start = lines.index(_ARMOUR_BEGIN)
+    except ValueError:
+        raise ValueError(f"not ASCII armour: no '{_ARMOUR_BEGIN}' line") from None
+
+    # Armour headers ("Comment: ...") run up to the first blank line.
+    rest = lines[start + 1:]
+    if "" in rest:
+        rest = rest[rest.index("") + 1:]
+    body: list[str] = []
+    checksum: str | None = None
+    for line in rest:
+        if line.startswith("-----END"):
+            break
+        if line.startswith("="):
+            checksum = line[1:]
+        elif line:
+            body.append(line)
+
+    data = base64.b64decode("".join(body), validate=True)
+    if checksum is not None:
+        expected = int.from_bytes(base64.b64decode(checksum), "big")
+        if _crc24(data) != expected:
+            raise ValueError("armour checksum mismatch: the key is corrupt")
+    return data
 
 
 # ---------------------------------------------------------------------------
@@ -416,7 +475,7 @@ def render_root_index(cards: list[dict], tree: list[dict]) -> str:
   <h2>Add this repository on a Raspberry Pi</h2>
   <p>Works on Debian <strong>bookworm</strong> (12) and <strong>trixie</strong> (13). The snippet below auto-detects which suite you are on.</p>
   <pre class="code"><code>curl -fsSL https://fpgas-online.github.io/apt/pubkey.gpg \\
-  | sudo gpg --dearmor -o /usr/share/keyrings/fpgas-online.gpg
+  | sudo tee /usr/share/keyrings/fpgas-online.gpg &gt; /dev/null
 echo "deb [signed-by=/usr/share/keyrings/fpgas-online.gpg] \\
   https://fpgas-online.github.io/apt $(lsb_release -cs) main" \\
   | sudo tee /etc/apt/sources.list.d/fpgas-online.list
@@ -519,9 +578,10 @@ _EXCLUDE_FILES = {".gitkeep"}
 
 
 def _mirror_publishable_files(repo_root: pathlib.Path, out_dir: pathlib.Path) -> None:
-    pubkey = repo_root / "pubkey.gpg"
+    pubkey = repo_root / "pubkey.asc"
     if pubkey.exists():
-        shutil.copy2(pubkey, out_dir / "pubkey.gpg")
+        shutil.copy2(pubkey, out_dir / "pubkey.asc")
+        (out_dir / "pubkey.gpg").write_bytes(dearmor(pubkey.read_bytes()))
 
     for top in ("pool", "dists"):
         src = repo_root / top

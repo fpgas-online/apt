@@ -44,7 +44,7 @@ concurrency group so they never race on `pool/`/`dists/` commits.
 ### Key Files
 
 - `update-repo.sh` -- Regenerates `Packages`, `Release`, signs with GPG
-- `pubkey.gpg` -- GPG public key for verifying package signatures
+- `pubkey.asc` -- GPG public key for verifying package signatures (`tools/build_site.py` also publishes it as a binary `pubkey.gpg`)
 - `.github/workflows/receive-deb.yml` -- CI workflow triggered by deb-producing repos
 
 ### Adding the Repo on a Pi
