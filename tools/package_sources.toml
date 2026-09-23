@@ -4,6 +4,8 @@
 # publishing to this APT repository.
 
 [packages]
+"fpgas-online-acorn-bitstreams" = "fpgas-online/fpgas.online-test-designs"
+"fpgas-online-acorn-tools" = "fpgas-online/fpgas.online-test-designs"
 "fpgas-online-cam" = "fpgas-online/fpgas.online-cam"
 "fpgas-online-setup-pi" = "fpgas-online/fpgas.online-setup-pi"
 "fpgas-online-tt" = "fpgas-online/fpgas.online-tt"
