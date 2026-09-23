@@ -1,3 +1,41 @@
+Package: fpgas-online-acorn-bitstreams
+Architecture: all
+Version: 20260921+gf3355dccf443
+Priority: optional
+Maintainer: fpgas.online <fpgas@fpgas.online>
+Installed-Size: 12343
+Filename: pool/main/fpgas-online-acorn-bitstreams_20260921+gf3355dccf443_all.deb
+Size: 2245678
+MD5sum: 556694ddd932b19d5fe7ec04590546d3
+SHA1: c0b3ac228c99d1bd1b3e893661a5e14b5f8f094c
+SHA256: d7db0cde292d00ba036682885660679b148a20e354dc6d0466b1ca0595dcbfeb
+SHA512: 9e28bd007c0c100cd17e7a2e2dfdc4626fc0064e4057904bba1711bd9c548475355b7def67ece219783213ad32e2cebcba38c27a1304958d83b6ad6f09dc0b96
+Homepage: https://github.com/fpgas-online/fpgas.online-test-designs
+Description: fpgas.online Acorn PCIe SoC images (vivado-bitstreams-acorn-pcie-20260921-gf3355dccf443)
+ The golden and operational flash images for each Acorn variant, the register maps of those
+ builds and the operational build's .bit, from the pinned GitHub Release. Read by
+ fpgas-acorn-verify; written to a board only by an operator (fpgas-acorn-flash).
+
+Package: fpgas-online-acorn-tools
+Architecture: all
+Version: 0.0.post557
+Priority: optional
+Maintainer: fpgas.online <fpgas@fpgas.online>
+Installed-Size: 41
+Depends: python3, fpgas-online-acorn-bitstreams (= 20260921+gf3355dccf443)
+Recommends: fpgas-online-setup-pi
+Filename: pool/main/fpgas-online-acorn-tools_0.0.post557_all.deb
+Size: 15160
+MD5sum: a1c2acc4856a8db3aea1c983b0efb983
+SHA1: c1a205d653ac9176373a42eb71a7e0f9ea8ebfc0
+SHA256: c552bafd168928e9f05c0889adf7c113f43ef09059d8ccff019cf26ba7ecd370
+SHA512: 242ae69a44a0a74ee6c2ce93a34c617ae6734f816e6de3353b5e2018e22c3ffb8f82563e1c60d7e293ae326fd033b93925a0d8cda0df4f4df156b3f97512cf4a
+Homepage: https://github.com/fpgas-online/fpgas.online-test-designs
+Description: fpgas.online Acorn checks and flash tool
+ fpgas-acorn-verify checks, on every boot, that an Acorn runs the expected fpgas.online image and
+ that its flash holds the expected images, reading only. fpgas-acorn-flash (spi_flash.py) identifies,
+ dumps, verifies and, when asked, writes the flash over PCIe.
+
 Package: fpgas-online-cam
 Architecture: all
 Version: 0.0.0~rc0
