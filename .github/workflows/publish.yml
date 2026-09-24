@@ -44,6 +44,11 @@ jobs:
     uses: mithro/apt-repo-action/.github/workflows/publish-apt.yml@main
     with:
       suites: "bookworm trixie"
+      # Informational only: each suite is a flat repository with one Packages
+      # file, and apt does not check its host architecture against a flat
+      # Release, so amd64 and any other architecture install these Architecture:
+      # all packages too (fpgas-online/apt#12; the old dists/ layout's
+      # per-architecture binary-*/ indexes are what shut other hosts out).
       architectures: "all arm64 armhf"
       description: "Debian packages for the fpgas.online FPGA-as-a-Service platform"
       # Transitional: the previous dists/ archive and key names, frozen, until
