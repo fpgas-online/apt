@@ -12,7 +12,9 @@ This repository hosts Debian packages used by fpgas.online Raspberry Pi nodes. P
 - **fpgas-online-setup-pi** -- Pi node configuration, services, and environment setup.
 - **fpgas-online-tt** -- Tiny Tapeout demo-board serial bridge daemon for tinytapeout.fpgas.online.
 
-## Adding the Repository on a Pi
+## Adding the Repository
+
+Every package here is `Architecture: all` (scripts, configuration and FPGA bitstreams), and each suite is one flat repository. So it works on any architecture: a Raspberry Pi (arm64, armhf), and equally an x86 (amd64) machine or CI container. The frozen `dists/` layout below is still arm64/armhf only.
 
 This repository follows the same convention as every other apt repository
 published from mithro/* and fpgas-online/*
