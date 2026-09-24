@@ -14,7 +14,7 @@ This repository hosts Debian packages used by fpgas.online Raspberry Pi nodes. P
 
 ## Adding the Repository
 
-Every package here is `Architecture: all` (scripts, configuration and FPGA bitstreams), and each suite is one flat repository. So it works on any architecture: a Raspberry Pi (arm64, armhf), and equally an x86 (amd64) machine or CI container. The frozen `dists/` layout below is still arm64/armhf only.
+Every package here is `Architecture: all` (scripts, configuration and FPGA bitstreams), and each suite is one flat repository. So it works on any architecture: a Raspberry Pi (arm64, armhf), and equally an x86 (amd64) machine or CI container.
 
 This repository follows the same convention as every other apt repository
 published from mithro/* and fpgas-online/*
@@ -31,11 +31,6 @@ sudo apt install fpgas-online-setup-pi
 ```
 
 Suites: `bookworm`, `trixie`. The infra repo's `fpgas-apt` ansible role does this.
-
-The previous layout (`dists/<suite>/main`, `pubkey.gpg`,
-`/usr/share/keyrings/fpgas-online.gpg`) is still served, frozen, while clients
-move (`legacy-paths` in `.github/workflows/publish.yml`); it no longer receives
-new packages.
 
 ## How It Works
 
