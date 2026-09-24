@@ -51,9 +51,5 @@ jobs:
       # per-architecture binary-*/ indexes are what shut other hosts out).
       architectures: "all arm64 armhf"
       description: "Debian packages for the fpgas.online FPGA-as-a-Service platform"
-      # Transitional: the previous dists/ archive and key names, frozen, until
-      # fpgas.online-infra's fpgas-apt role points at <site>/<suite>/ ./ and
-      # apt.gpg. Then drop this.
-      legacy-paths: "dists/bookworm dists/trixie pubkey.gpg pubkey.asc"
     secrets:
       gpg-private-key: ${{ secrets.APT_GPG_PRIVATE_KEY }}
