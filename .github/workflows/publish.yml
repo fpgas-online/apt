@@ -1,0 +1,54 @@
+name: Publish apt repository
+
+# pool/main/ is the package store (pull-debs.yml and receive-deb.yml add to
+# it). Every package is Architecture: all and installs on both NFS-root
+# releases, so each suite gets the whole pool; the shared workflow indexes,
+# signs and deploys one flat repository per suite, the same as every other
+# apt repository (docs/conventions.md in mithro/apt-repo-action).
+
+on:
+  push:
+    branches: [main]
+    paths: [pool/**, packaging/apt-intro.html, .github/workflows/publish.yml]
+  # pull-debs.yml and receive-deb.yml dispatch this after committing to pool/:
+  # a GITHUB_TOKEN push never triggers other workflows by itself.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        suite: [bookworm, trixie]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: debs-${{ matrix.suite }}-all
+          path: pool/main/*.deb
+          if-no-files-found: error
+
+  publish:
+    needs: collect
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: mithro/apt-repo-action/.github/workflows/publish-apt.yml@main
+    with:
+      suites: "bookworm trixie"
+      architectures: "all arm64 armhf"
+      description: "Debian packages for the fpgas.online FPGA-as-a-Service platform"
+      # Transitional: the previous dists/ archive and key names, frozen, until
+      # fpgas.online-infra's fpgas-apt role points at <site>/<suite>/ ./ and
+      # apt.gpg. Then drop this.
+      legacy-paths: "dists/bookworm dists/trixie pubkey.gpg pubkey.asc"
+    secrets:
+      gpg-private-key: ${{ secrets.APT_GPG_PRIVATE_KEY }}

@@ -20,7 +20,7 @@ that are installed on Raspberry Pi boards.
 1. Deb-producing repos (fpgas.online-cam, fpgas.online-setup-pi, fpgas.online-tt) build `.deb` files in CI
 2. On tagged releases, they trigger the `receive-deb` workflow in this repo via `repository_dispatch`
 3. The workflow downloads the deb, adds it to `pool/`, regenerates repo metadata, and deploys to GitHub Pages
-4. Pis install packages from `https://fpgas-online.github.io/apt`
+4. Pis install packages from `https://apt.fpgas.online/<suite>/ ./`
 
 The primary ingest path is now **secretless pull-based ingest**: source repos listed in
 `tools/package_sources.toml` publish each green `main` build's `.deb` to a GitHub Release —
@@ -29,12 +29,13 @@ rulesets only allow `vX.Y`-shaped tags — in their own repo (no cross-repo toke
 apt repo pulls every `<package>_*.deb` asset from *all* of the repo's releases, not just the
 latest, since a repo accumulates several series releases over time. The
 `.github/workflows/pull-debs.yml` workflow runs on a schedule (every 15 minutes) and on
-demand, downloading any new asset via `tools/pull_debs.py`, then running `update-repo.sh`
-and committing `pool/`+`dists/` if anything changed, then explicitly dispatching
-`pages.yml` (a `GITHUB_TOKEN` push never triggers other workflows on its own).
+demand, downloading any new asset via `tools/pull_debs.py`, committing `pool/` if
+anything changed, then explicitly dispatching `publish.yml` (a `GITHUB_TOKEN` push
+never triggers other workflows on its own). `publish.yml` calls the shared
+mithro/apt-repo-action publish workflow, which indexes, signs and deploys.
 `receive-deb.yml` (`repository_dispatch`, above) is kept
 as a legacy push-based path for compatibility; both workflows share the `apt-repo-writes`
-concurrency group so they never race on `pool/`/`dists/` commits.
+concurrency group so they never race on `pool/` commits.
 
 ### Hosted Packages
 
@@ -43,15 +44,18 @@ concurrency group so they never race on `pool/`/`dists/` commits.
 
 ### Key Files
 
-- `update-repo.sh` -- Regenerates `Packages`, `Release`, signs with GPG
-- `pubkey.asc` -- GPG public key for verifying package signatures (`tools/build_site.py` also publishes it as a binary `pubkey.gpg`)
+- `.github/workflows/publish.yml` -- Publishes `pool/main/` through mithro/apt-repo-action (one flat repository per suite, key `apt.gpg`)
+- `packaging/apt-intro.html` -- Description placed on the generated index page
 - `.github/workflows/receive-deb.yml` -- CI workflow triggered by deb-producing repos
 
 ### Adding the Repo on a Pi
 
 ```
-deb [signed-by=/usr/share/keyrings/fpgas-online.gpg] https://fpgas-online.github.io/apt bookworm main
+deb [signed-by=/etc/apt/keyrings/apt.gpg] https://apt.fpgas.online/bookworm/ ./
 ```
+
+(key: `https://apt.fpgas.online/apt.gpg`; the convention every apt repository
+follows is docs/conventions.md in mithro/apt-repo-action.)
 
 The infra repo's `fpgas-apt` ansible role handles this automatically.
 
@@ -85,4 +89,4 @@ a GitHub Actions secret `APT_GPG_PRIVATE_KEY`.
 
 ## Linting
 
-- shellcheck: blocking (`update-repo.sh`)
+- shellcheck: blocking (any `*.sh`)
