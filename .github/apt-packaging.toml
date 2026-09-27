@@ -1,0 +1,8 @@
+# What kind of packaging repository this is, and why it differs from the
+# defaults: mithro/apt-repo-action's docs/packaging.md ("The declaration").
+kind = "aggregate"
+architectures = "all"
+suites = ["bookworm", "trixie", "forky", "sid"]
+
+[exceptions]
+PKG-SUITES = "fpgas.online uses it"
