@@ -23,16 +23,17 @@ that are installed on Raspberry Pi boards.
 4. Pis install packages from `https://apt.fpgas.online/<suite>/ ./`
 
 The primary ingest path is now **secretless pull-based ingest**: source repos listed in
-`tools/package_sources.toml` publish each green `main` build's `.deb` to a GitHub Release —
-by convention the current series tag's release (`v0.0`, `v0.1`, ...), since source repos' tag
-rulesets only allow `vX.Y`-shaped tags — in their own repo (no cross-repo token needed). The
-apt repo pulls every `<package>_*.deb` asset from *all* of the repo's releases, not just the
-latest, since a repo accumulates several series releases over time. The
+`tools/package_sources.toml` publish each green `main` build's `.deb` to a GitHub Release in
+their own repo (no cross-repo token needed): one release per build (`build-<version>`), or the
+rolling release of the current series tag (`v0.0`, `v0.1`, ...). The apt repo pulls every
+`<package>_*.deb` asset from *all* of the repo's releases, not just the latest. A
+`package_sources.toml` entry ending in `*` is a prefix, for one package per kernel. The
 `.github/workflows/pull-debs.yml` workflow runs on a schedule (every 15 minutes) and on
 demand, downloading any new asset via `tools/pull_debs.py`, committing `pool/` if
 anything changed, then explicitly dispatching `publish.yml` (a `GITHUB_TOKEN` push
-never triggers other workflows on its own). `publish.yml` calls the shared
-mithro/apt-repo-action publish workflow, which indexes, signs and deploys.
+never triggers other workflows on its own). `publish.yml` picks each suite's packages
+(`tools/suite_debs.py`: a version ending in `~deb12` or `~deb13` is that suite's build alone)
+and calls the shared mithro/apt-repo-action publish workflow, which indexes, signs and deploys.
 `receive-deb.yml` (`repository_dispatch`, above) is kept
 as a legacy push-based path for compatibility; both workflows share the `apt-repo-writes`
 concurrency group so they never race on `pool/` commits.
