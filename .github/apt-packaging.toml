@@ -6,3 +6,12 @@ suites = ["bookworm", "trixie", "forky", "sid"]
 
 [exceptions]
 PKG-SUITES = "fpgas.online uses it"
+
+# fpgas-online-acorn-litepcie (the Acorn's LitePCIe driver, aggregated here from fpgas.online-test-designs'
+# release like its other packages) depends on packages that repository publishes in an apt archive of its
+# own, because they are compiled per suite and per kernel: fpgas-online-acorn-litepcie-common, -utils, -dkms
+# and one -modules-<kernel> per Raspberry Pi kernel. Bundled, so a Pi needs only this repository.
+[[depends]]
+repo = "fpgas-online/fpgas.online-test-designs"
+bundle = true
+reason = "litepcie.ko and its tools are compiled per suite and kernel, in fpgas.online-test-designs' own archive"
