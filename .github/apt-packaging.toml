@@ -1,8 +1,12 @@
 # What kind of packaging repository this is, and why it differs from the
 # defaults: mithro/apt-repo-action's docs/packaging.md ("The declaration").
 kind = "aggregate"
-architectures = "all"
+# Nearly everything collected here is Architecture: all. The compiled ones are
+# the LitePCIe tools (amd64, arm64, armhf) and kernel modules (arm64) from
+# fpgas-online/fpgas.online-test-designs.
+architectures = ["amd64", "arm64", "armhf"]
 suites = ["bookworm", "trixie", "forky", "sid"]
 
 [exceptions]
 PKG-SUITES = "fpgas.online uses it"
+PKG-ARCH = "hardware-specific: the hosts an fpgas.online board plugs into, a Raspberry Pi (arm64, armhf) or an x86-64 PC"
