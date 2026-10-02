@@ -7,6 +7,7 @@
 "fpgas-online-acorn" = "fpgas-online/fpgas.online-test-designs"
 "fpgas-online-acorn-bitstreams" = "fpgas-online/fpgas.online-test-designs"
 "fpgas-online-acorn-debug" = "fpgas-online/fpgas.online-test-designs"
+"fpgas-online-acorn-litepcie" = "fpgas-online/fpgas.online-test-designs"
 "fpgas-online-acorn-tools" = "fpgas-online/fpgas.online-test-designs"
 "fpgas-online-all-boards" = "fpgas-online/fpgas.online-test-designs"
 "fpgas-online-arty" = "fpgas-online/fpgas.online-test-designs"
