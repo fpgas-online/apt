@@ -14,7 +14,9 @@ This repository hosts Debian packages used by fpgas.online Raspberry Pi nodes. P
 
 ## Adding the Repository
 
-Every package here is `Architecture: all` (scripts, configuration and FPGA bitstreams), and each suite is one flat repository. So it works on any architecture: a Raspberry Pi (arm64, armhf), and equally an x86 (amd64) machine or CI container.
+The packages this repository collects are `Architecture: all` (scripts, configuration and FPGA bitstreams), and each suite is one flat repository. So it works on any architecture: a Raspberry Pi (arm64, armhf), and equally an x86 (amd64) machine or CI container.
+
+It also carries the compiled packages those depend on, bundled from [fpgas.online-test-designs](https://github.com/fpgas-online/fpgas.online-test-designs)' own archive, so that one source is enough: the LitePCIe driver for the Acorn (`fpgas-online-acorn-litepcie-dkms`, a prebuilt `fpgas-online-acorn-litepcie-modules-<kernel>` for each Raspberry Pi kernel a Pi 5 boots) and its tools. Those are built per suite and per architecture.
 
 This repository follows the same convention as every other apt repository
 published from mithro/* and fpgas-online/*
