@@ -1,0 +1,24 @@
+name: Refresh bundled packages
+
+# This repository bundles fpgas.online-test-designs' archive (.github/apt-packaging.toml): the LitePCIe
+# driver's packages, among them one fpgas-online-acorn-litepcie-modules-<kernel> per Raspberry Pi kernel. A
+# new kernel's modules appear there within a day of the kernel, and reach this repository's users only when
+# it publishes again. This checks, daily, whether the bundled archive has anything the live site lacks, and
+# only then starts publish.yml. Nothing newer: nothing runs.
+# (mithro/apt-repo-action docs/packaging.md, "Bundling a dependency repository": Keeping up.)
+
+on:
+  schedule:
+    - cron: "41 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write  # to start publish.yml
+
+jobs:
+  refresh:
+    uses: mithro/apt-repo-action/.github/workflows/refresh-bundled.yml@main
+    with:
+      suites: "bookworm trixie"
+      workflow: publish.yml
