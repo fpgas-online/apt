@@ -2,11 +2,20 @@
 # Consumed by tools/build-site.py when rendering package cards on the
 # landing page. Add an entry whenever a new deb-producing repo starts
 # publishing to this APT repository.
+#
+# An entry is a package name, or a prefix ending in `*` for a family of
+# packages whose names can't be listed ahead of time (tools/pull_debs.py):
+# fpgas-online-acorn-litepcie-modules-<kver>, one per Raspberry Pi kernel.
 
 [packages]
 "fpgas-online-acorn" = "fpgas-online/fpgas.online-test-designs"
 "fpgas-online-acorn-bitstreams" = "fpgas-online/fpgas.online-test-designs"
 "fpgas-online-acorn-debug" = "fpgas-online/fpgas.online-test-designs"
+"fpgas-online-acorn-litepcie" = "fpgas-online/fpgas.online-test-designs"
+"fpgas-online-acorn-litepcie-common" = "fpgas-online/fpgas.online-test-designs"
+"fpgas-online-acorn-litepcie-dkms" = "fpgas-online/fpgas.online-test-designs"
+"fpgas-online-acorn-litepcie-modules-*" = "fpgas-online/fpgas.online-test-designs"
+"fpgas-online-acorn-litepcie-utils" = "fpgas-online/fpgas.online-test-designs"
 "fpgas-online-acorn-tools" = "fpgas-online/fpgas.online-test-designs"
 "fpgas-online-all-boards" = "fpgas-online/fpgas.online-test-designs"
 "fpgas-online-arty" = "fpgas-online/fpgas.online-test-designs"
