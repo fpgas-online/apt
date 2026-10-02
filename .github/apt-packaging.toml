@@ -13,5 +13,6 @@ PKG-SUITES = "fpgas.online uses it"
 # and one -modules-<kernel> per Raspberry Pi kernel. Bundled, so a Pi needs only this repository.
 [[depends]]
 repo = "fpgas-online/fpgas.online-test-designs"
+suites = ["bookworm", "trixie"]  # the suites that archive has: the ones the Pi roots run
 bundle = true
 reason = "litepcie.ko and its tools are compiled per suite and kernel, in fpgas.online-test-designs' own archive"
