@@ -14,7 +14,7 @@ This repository hosts Debian packages used by fpgas.online Raspberry Pi nodes. P
 
 ## Adding the Repository
 
-Every package here is `Architecture: all` (scripts, configuration and FPGA bitstreams), and each suite is one flat repository. So it works on any architecture: a Raspberry Pi (arm64, armhf), and equally an x86 (amd64) machine or CI container.
+Nearly every package here is `Architecture: all` (scripts, configuration and FPGA bitstreams), and each suite is one flat repository. So those work on any architecture: a Raspberry Pi (arm64, armhf), and equally an x86 (amd64) machine or CI container. The compiled packages are the LitePCIe driver's for the Acorn: its tools (amd64, arm64, armhf) and its prebuilt kernel modules, one package per Raspberry Pi kernel (arm64). They are built for each suite, and a suite publishes only its own build.
 
 This repository follows the same convention as every other apt repository
 published from mithro/* and fpgas-online/*
@@ -36,10 +36,10 @@ Suites: `bookworm`, `trixie`. The infra repo's `fpgas-apt` ansible role does thi
 
 ### Pull-based ingest (primary path, secretless)
 
-1. Each deb-producing source repository (listed in `tools/package_sources.toml`) publishes every green `main` build's `.deb` as an asset on a GitHub Release in its own repo — by convention the current series tag's release (`v0.0`, `v0.1`, ...), since source repos' tag rulesets only allow `vX.Y`-shaped tags. A repo may accumulate several such releases over time as its series advances. Each release is created with the source repo's own `GITHUB_TOKEN` — no cross-repo token is ever needed.
-2. The `pull-debs` workflow in this repository runs on a schedule (every 15 minutes) and on demand (`workflow_dispatch`). For each source repo it enumerates *all* of that repo's GitHub Releases (paginated) and pulls every `<package>_*.deb` asset not already present in `pool/main/`, downloading them anonymously (`tools/pull_debs.py`). A repo with no releases yet is simply skipped.
+1. Each deb-producing source repository (listed in `tools/package_sources.toml`) publishes every green `main` build's `.deb` as an asset on a GitHub Release in its own repo: one release per build (`build-<version>`), or the rolling release of the current series tag (`v0.0`, `v0.1`, ...). Either way a repo accumulates releases. Each release is created with the source repo's own `GITHUB_TOKEN` — no cross-repo token is ever needed.
+2. The `pull-debs` workflow in this repository runs on a schedule (every 15 minutes) and on demand (`workflow_dispatch`). For each source repo it enumerates *all* of that repo's GitHub Releases (paginated) and pulls every `<package>_*.deb` asset not already present in `pool/main/`, downloading them anonymously (`tools/pull_debs.py`). A registered package that no release offers fails the run: the other packages are still pulled.
 3. If any new `.deb`s were pulled, the workflow commits them to `pool/main/` and dispatches `publish.yml` (a push made with the workflow's own `GITHUB_TOKEN` never triggers other workflows by itself). `workflow_dispatch` with `force_update: true` republishes without new debs.
-4. `publish.yml` uploads the pool as each suite's packages and calls the shared [`mithro/apt-repo-action`](https://github.com/mithro/apt-repo-action) publish workflow, which indexes, signs (secret `APT_GPG_PRIVATE_KEY`) and deploys to GitHub Pages.
+4. `publish.yml` picks each suite's packages from the pool (`tools/suite_debs.py`: a package whose version ends in `~deb12` or `~deb13` was built for that suite and goes to it alone; every other package goes to every suite) and calls the shared [`mithro/apt-repo-action`](https://github.com/mithro/apt-repo-action) publish workflow, which indexes, signs (secret `APT_GPG_PRIVATE_KEY`) and deploys to GitHub Pages.
 
 ### Push-based ingest (legacy path)
 
@@ -54,23 +54,25 @@ exports the public half on every publish as `apt.gpg` (binary) and `apt.asc`
 ## Directory Structure
 
 ```
-pool/main/                   Binary .deb packages (the store; every suite publishes all of it)
+pool/main/                   Binary .deb packages (the store; a suite publishes all but another suite's builds)
 packaging/apt-intro.html     Description placed on the generated index page
 tools/
   package_sources.toml       Package name -> source GitHub repo map
   pull_debs.py               Pulls new debs from source repos' GitHub Releases
   test_pull_debs.py          Unit tests for pull_debs.py
+  suite_debs.py              Picks the packages of the pool that one suite publishes
+  test_suite_debs.py         Unit tests for suite_debs.py
 .github/workflows/
   pull-debs.yml              Pulls new debs on a schedule, commits them, dispatches publish.yml
   receive-deb.yml            Legacy push-based deb ingest (repository_dispatch), dispatches publish.yml
   publish.yml                Indexes, signs and deploys via mithro/apt-repo-action
-  lint.yml                   CI linting
+  lint.yml                   CI: unit tests of tools/, shellcheck
 ```
 
 ## Adding a Package
 
-1. Add an entry to `tools/package_sources.toml` mapping the package name to its source GitHub repo, e.g. `"fpgas-online-foo" = "fpgas-online/fpgas.online-foo"`.
-2. Have the source repo's CI publish each green `main` build's `.deb` as an asset on a GitHub Release in its own repo — by convention the current series tag's release (`v0.0`, `v0.1`, ...) — created with that repo's own `GITHUB_TOKEN`. The apt repo pulls every `<package>_*.deb` asset from *all* of the repo's releases, so older series releases don't need to be cleaned up. The `pull-debs` workflow here will pick up new assets on its next scheduled run (or trigger it manually via `workflow_dispatch`).
+1. Add an entry to `tools/package_sources.toml` mapping the package name to its source GitHub repo, e.g. `"fpgas-online-foo" = "fpgas-online/fpgas.online-foo"`. A family of packages whose names can't be listed ahead of time (one per kernel) takes one prefix entry ending in `*`: `"fpgas-online-acorn-litepcie-modules-*"`.
+2. Have the source repo's CI publish each green `main` build's `.deb` as an asset on a GitHub Release in its own repo, created with that repo's own `GITHUB_TOKEN`: the build's own release (`build-<version>`, mithro/apt-repo-action's docs/packaging.md, "GitHub Releases"). The apt repo pulls every `<package>_*.deb` asset from *all* of the repo's releases, so older releases don't need to be cleaned up. A package built for each suite carries the suite in its version (`~deb12`, `~deb13`). The `pull-debs` workflow here will pick up new assets on its next scheduled run (or trigger it manually via `workflow_dispatch`).
 
 ## Related Repositories
 
