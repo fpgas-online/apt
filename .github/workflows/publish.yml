@@ -31,8 +31,11 @@ jobs:
         suite: [bookworm, trixie]
     steps:
       - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
       - name: Pick the packages ${{ matrix.suite }} publishes
-        run: python3 tools/suite_debs.py --suite ${{ matrix.suite }} --out dist/${{ matrix.suite }}
+        run: uv run --python 3.12 python tools/suite_debs.py --suite ${{ matrix.suite }} --out dist/${{ matrix.suite }}
       - uses: actions/upload-artifact@v4
         with:
           name: debs-${{ matrix.suite }}
