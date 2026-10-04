@@ -59,6 +59,34 @@ class IsValidAssetNameTests(unittest.TestCase):
         self.assertFalse(pull_debs.is_valid_asset_name("foo.deb"))
 
 
+class ProvidesTests(unittest.TestCase):
+    MODULES = "fpgas-online-acorn-litepcie-modules-*"
+
+    def test_exact_entry_matches_only_that_package(self):
+        self.assertTrue(pull_debs.provides("foo", "foo_1.0_all.deb"))
+        self.assertFalse(pull_debs.provides("foo", "foo-tools_1.0_all.deb"))
+        self.assertFalse(pull_debs.provides("foo-tools", "foo_1.0_all.deb"))
+
+    def test_prefix_entry_matches_every_package_of_the_family(self):
+        for kver in ("6.12.109+rpt-rpi-v8", "6.12.47+rpt-rpi-2712"):
+            name = f"fpgas-online-acorn-litepcie-modules-{kver}_0.0.post776.deb12_arm64.deb"
+            self.assertTrue(pull_debs.provides(self.MODULES, name), name)
+            self.assertTrue(pull_debs.is_valid_asset_name(name), name)
+
+    def test_prefix_entry_does_not_match_its_siblings(self):
+        # -common, -dkms and -utils have entries of their own; the family is
+        # only the packages whose name goes on after the prefix.
+        for name in (
+            "fpgas-online-acorn-litepcie-common_0.0.post776.deb12_all.deb",
+            "fpgas-online-acorn-litepcie_0.0.post776_all.deb",
+            "fpgas-online-acorn-litepcie-modules-_0.0.post776_arm64.deb",
+        ):
+            self.assertFalse(pull_debs.provides(self.MODULES, name), name)
+
+    def test_the_star_never_reaches_into_the_version(self):
+        self.assertFalse(pull_debs.provides("foo-*", "foo_1.0-x_all.deb"))
+
+
 class ParseLinkHeaderTests(unittest.TestCase):
     def test_extracts_next_url(self):
         header = (
@@ -276,6 +304,76 @@ class PullAllTests(unittest.TestCase):
         self.assertEqual(rc, 2)
         self.assertIn("NEW: 1", out)
         self.assertTrue((self.pool_dir() / "bar_1.0_all.deb").exists())
+
+    def test_prefix_entry_pulls_every_package_of_the_family(self):
+        _write_sources_toml(self.repo_root, {"foo-modules-*": "org/foo"})
+        names = ["foo-modules-6.12.1+rpi-v8_1.0.deb12_arm64.deb", "foo-modules-6.12.2+rpi-v8_1.0.deb12_arm64.deb"]
+
+        def list_releases_fn(repo, token):
+            return [_release([_asset(n, 4) for n in [*names, "foo_1.0_all.deb"]], tag="build-1.0")]
+
+        def download_fn(url, dest, expected_size):
+            dest.write_bytes(b"data")
+            return 4
+
+        rc, out = self.run_pull(list_releases_fn, download_fn)
+        self.assertEqual(rc, 0)
+        self.assertIn("NEW: 2", out)
+        self.assertEqual(sorted(p.name for p in self.pool_dir().glob("*.deb")), names)
+
+    def test_prefix_entry_with_no_package_at_all_is_an_error(self):
+        _write_sources_toml(self.repo_root, {"foo-modules-*": "org/foo"})
+
+        def list_releases_fn(repo, token):
+            return [_release([_asset("foo_1.0_all.deb", 4)])]
+
+        with self.assertLogs(pull_debs.LOG, level="ERROR") as logs:
+            rc, _ = self.run_pull(list_releases_fn)
+        self.assertEqual(rc, 2)
+        self.assertIn("provides nothing", "\n".join(logs.output))
+
+    def test_a_repo_is_listed_once_however_many_packages_it_provides(self):
+        # A repo with a release per build has many pages of releases, and
+        # each page is an API call against the hourly limit.
+        _write_sources_toml(self.repo_root, {"foo": "org/foo", "foo-tools": "org/foo", "bar": "org/bar"})
+        listed = []
+
+        def list_releases_fn(repo, token):
+            listed.append(repo)
+            name = repo.split("/")[1]
+            return [_release([_asset(f"{name}_1.0_all.deb", 4), _asset(f"{name}-tools_1.0_all.deb", 4)])]
+
+        def download_fn(url, dest, expected_size):
+            dest.write_bytes(b"data")
+            return 4
+
+        rc, out = self.run_pull(list_releases_fn, download_fn)
+        self.assertEqual(rc, 0)
+        self.assertIn("NEW: 3", out)
+        self.assertEqual(sorted(listed), ["org/bar", "org/foo"])
+
+    def test_a_repo_that_cannot_be_listed_fails_each_of_its_packages_once(self):
+        _write_sources_toml(self.repo_root, {"foo": "org/foo", "foo-tools": "org/foo", "bar": "org/bar"})
+        listed = []
+
+        def list_releases_fn(repo, token):
+            listed.append(repo)
+            if repo == "org/foo":
+                raise OSError("HTTP 502")
+            return [_release([_asset("bar_1.0_all.deb", 4)])]
+
+        def download_fn(url, dest, expected_size):
+            dest.write_bytes(b"data")
+            return 4
+
+        with self.assertLogs(pull_debs.LOG, level="ERROR") as logs:
+            rc, out = self.run_pull(list_releases_fn, download_fn)
+        self.assertEqual(rc, 2)
+        self.assertIn("NEW: 1", out)
+        self.assertEqual(listed.count("org/foo"), 1)
+        text = "\n".join(logs.output)
+        self.assertIn("foo (org/foo) was not checked", text)
+        self.assertIn("foo-tools (org/foo) was not checked", text)
 
     def test_new_asset_is_downloaded(self):
         _write_sources_toml(self.repo_root, {"foo": "org/foo"})

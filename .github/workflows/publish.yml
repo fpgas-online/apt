@@ -1,15 +1,17 @@
 name: Publish apt repository
 
 # pool/main/ is the package store (pull-debs.yml and receive-deb.yml add to
-# it). Every package is Architecture: all and installs on both NFS-root
-# releases, so each suite gets the whole pool; the shared workflow indexes,
-# signs and deploys one flat repository per suite, the same as every other
-# apt repository (docs/conventions.md in mithro/apt-repo-action).
+# it). A package built once installs on both NFS-root releases, so each suite
+# gets it; a package built for each suite (its version ends in ~deb12 or
+# ~deb13: the compiled LitePCIe tools and kernel modules) goes to its own
+# suite only (tools/suite_debs.py). The shared workflow indexes, signs and
+# deploys one flat repository per suite, the same as every other apt
+# repository (docs/conventions.md in mithro/apt-repo-action).
 
 on:
   push:
     branches: [main]
-    paths: [pool/**, packaging/apt-intro.html, .github/workflows/publish.yml]
+    paths: [pool/**, packaging/apt-intro.html, .github/workflows/publish.yml, tools/suite_debs.py]
   # pull-debs.yml and receive-deb.yml dispatch this after committing to pool/:
   # a GITHUB_TOKEN push never triggers other workflows by itself.
   workflow_dispatch:
@@ -29,10 +31,15 @@ jobs:
         suite: [bookworm, trixie]
     steps:
       - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Pick the packages ${{ matrix.suite }} publishes
+        run: uv run --python 3.12 python tools/suite_debs.py --suite ${{ matrix.suite }} --out dist/${{ matrix.suite }}
       - uses: actions/upload-artifact@v4
         with:
-          name: debs-${{ matrix.suite }}-all
-          path: pool/main/*.deb
+          name: debs-${{ matrix.suite }}
+          path: dist/${{ matrix.suite }}/*.deb
           if-no-files-found: error
 
   publish:
@@ -44,12 +51,13 @@ jobs:
     uses: mithro/apt-repo-action/.github/workflows/publish-apt.yml@main
     with:
       suites: "bookworm trixie"
-      # Informational only: each suite is a flat repository with one Packages
-      # file, and apt does not check its host architecture against a flat
-      # Release, so amd64 and any other architecture install these Architecture:
-      # all packages too (fpgas-online/apt#12; the old dists/ layout's
-      # per-architecture binary-*/ indexes are what shut other hosts out).
-      architectures: "all arm64 armhf"
+      # Each suite is a flat repository with one Packages file, and apt does
+      # not check its host architecture against a flat Release, so any
+      # architecture installs the Architecture: all packages (fpgas-online/apt#12;
+      # the old dists/ layout's per-architecture binary-*/ indexes are what
+      # shut other hosts out). The compiled ones are amd64, arm64 and armhf.
+      # A suite holding any other architecture gets a warning.
+      architectures: "all amd64 arm64 armhf"
       description: "Debian packages for the fpgas.online FPGA-as-a-Service platform"
     secrets:
       gpg-private-key: ${{ secrets.APT_GPG_PRIVATE_KEY }}

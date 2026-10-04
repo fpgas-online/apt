@@ -2,12 +2,15 @@
 
 Secretless pull-based ingest: each source repo listed in
 tools/package_sources.toml publishes every green `main` build's `.deb` as an
-asset on a GitHub Release in its own repo -- by convention, the release for
-the current series tag (`v0.0`, `v0.1`, ...), since source repos' tag
-rulesets only allow `vX.Y`-shaped tags. A repo may accumulate several such
-releases over time as its series advances. This script pulls every
-`<package>_*.deb` asset across *all* of a source repo's releases -- it never
-needs write access to, or a token for, the source repos.
+asset on a GitHub Release in its own repo: one release per build
+(`build-<version>`), or the rolling release of the current series tag
+(`v0.0`, `v0.1`, ...). Either way a repo accumulates releases. This script
+pulls every `<package>_*.deb` asset across *all* of a source repo's releases
+-- it never needs write access to, or a token for, the source repos.
+
+An entry in package_sources.toml is a package name, or a prefix ending in
+`*` for a family of packages whose names can't be listed ahead of time (see
+provides()).
 
 Every entry in package_sources.toml must be provided by its repo: if a
 registered package has no matching `.deb` asset on any release, the run
@@ -70,6 +73,21 @@ def is_valid_asset_name(name: str) -> bool:
     if "/" in name or "\\" in name:
         return False
     return bool(ASSET_NAME_RE.match(name))
+
+
+def provides(entry: str, asset_name: str) -> bool:
+    """Whether a package_sources.toml entry names the package `asset_name`
+    (`<package>_<version>_<arch>.deb`) is a build of.
+
+    An entry is a package name, or a prefix ending in `*` for a family whose
+    members can't be listed ahead of time: one package per kernel
+    (`fpgas-online-acorn-litepcie-modules-*`), where a new kernel upstream
+    means a new package name. The `*` stands for the rest of the package
+    name only, never for a `_`: the name ends at the first `_`."""
+    package = asset_name.split("_", 1)[0]
+    if entry.endswith("*"):
+        return package.startswith(entry[:-1]) and package != entry[:-1]
+    return package == entry
 
 
 def _parse_link_header(header: str | None) -> str | None:
@@ -190,11 +208,22 @@ def pull_all(
     new_files: list[str] = []
     had_error = False
 
+    # One listing per source repo, however many packages it provides: a repo
+    # with a release per build has many pages of them, and each page is an
+    # API call. A failed listing is remembered too (None), so it is reported
+    # for each of the repo's packages without being retried for each.
+    listings: dict[str, list[dict] | None] = {}
+
     for package, repo in sources.items():
-        try:
-            releases = list_releases_fn(repo, token)
-        except Exception:
-            LOG.exception("failed to list releases for %s (%s)", package, repo)
+        if repo not in listings:
+            try:
+                listings[repo] = list_releases_fn(repo, token)
+            except Exception:
+                LOG.exception("failed to list releases for %s", repo)
+                listings[repo] = None
+        releases = listings[repo]
+        if releases is None:
+            LOG.error("%s (%s) was not checked: its releases could not be listed", package, repo)
             had_error = True
             continue
 
@@ -208,7 +237,7 @@ def pull_all(
                 continue
             for asset in release.get("assets", []):
                 name = asset.get("name", "")
-                if not name.endswith(".deb") or not name.startswith(f"{package}_"):
+                if not name.endswith(".deb") or not provides(package, name):
                     continue  # not one of ours
                 if not is_valid_asset_name(name):
                     LOG.warning("rejecting asset with unexpected name: %s", name)
