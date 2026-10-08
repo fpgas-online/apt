@@ -62,9 +62,12 @@ jobs:
             pushed=false
             for attempt in 1 2 3 4 5; do
               if git push; then pushed=true; break; fi
+              [ "$attempt" = 5 ] && break
               echo "push attempt ${attempt} failed; retrying in $((attempt * 20)) s"
               sleep $((attempt * 20))
-              git pull --rebase origin main
+              # A failed pull (network) or conflict must not end the retries
+              # under bash -e: abort a half-done rebase and push again.
+              git pull --rebase origin main || git rebase --abort || true
             done
             if [ "$pushed" != true ]; then
               echo "::error::push failed 5 times; the pulled debs are not published"
@@ -85,6 +88,7 @@ jobs:
         run: |
           for attempt in 1 2 3 4 5; do
             gh workflow run publish.yml --ref main && exit 0
+            [ "$attempt" = 5 ] && break
             echo "dispatch attempt ${attempt} failed; retrying in $((attempt * 20)) s"
             sleep $((attempt * 20))
           done
