@@ -54,7 +54,22 @@ jobs:
             echo "pushed=false" >> "$GITHUB_OUTPUT"
           else
             git commit -m "Pull $(git status --porcelain pool/ | grep -c '^A') new deb(s) from source repos"
-            git push
+            # Retry the push: a GitHub server error here (HTTP 500 at 16:50Z on
+            # 2026-10-07, run 37655202595) otherwise loses the pull until the
+            # next scheduled start, which GitHub runs hours apart, and builds
+            # that install from this repo meanwhile get stale debs (#22).
+            # Rebase between tries in case a publish commit landed meanwhile.
+            pushed=false
+            for attempt in 1 2 3 4 5; do
+              if git push; then pushed=true; break; fi
+              echo "push attempt ${attempt} failed; retrying in $((attempt * 20)) s"
+              sleep $((attempt * 20))
+              git pull --rebase origin main
+            done
+            if [ "$pushed" != true ]; then
+              echo "::error::push failed 5 times; the pulled debs are not published"
+              exit 1
+            fi
             echo "pushed=true" >> "$GITHUB_OUTPUT"
           fi
 
@@ -66,7 +81,15 @@ jobs:
         # publish.yml indexes, signs and deploys (mithro/apt-repo-action).
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run publish.yml --ref main
+        # Retried for the same reason as the push (#22).
+        run: |
+          for attempt in 1 2 3 4 5; do
+            gh workflow run publish.yml --ref main && exit 0
+            echo "dispatch attempt ${attempt} failed; retrying in $((attempt * 20)) s"
+            sleep $((attempt * 20))
+          done
+          echo "::error::could not dispatch publish.yml 5 times"
+          exit 1
 
       - name: Fail the run if any source repo errored
         run: exit "${{ steps.pull.outputs.rc }}"
